@@ -1,24 +1,36 @@
 name: deploy-bundle
 on:
   push:
-    branches: [main]
+    branches: [ main ]
+    tags: ["v*"]
     paths:
       - configuration/**
       - src/**
       - pyproject.toml
       - .github/**
   workflow_dispatch:
+    inputs:
+      target:
+        type: choice
+        options:
+          - dev
+          - prd
+        default: dev
+        description: ""
 
 permissions:
   id-token: write
   contents: read
 
+env:
+  DATABRICKS_AUTH_TYPE: github-oidc
+
 jobs:
   deploy_dev:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    environment: dev
     env:
-      DATABRICKS_AUTH_TYPE: github-oidc
       DATABRICKS_HOST: https://adb-379336079866507.7.azuredatabricks.net
       DATABRICKS_CLIENT_ID: ${{ vars.DATABRICKS_SP_CLIENT_ID }}
     steps:
@@ -28,3 +40,22 @@ jobs:
       - run: databricks bundle validate -t dev
       - run: databricks bundle summary -t dev
       - run: databricks bundle plan -t dev
+      - run: databricks bundle deploy -t dev
+      - run: databricks bundle plan -t dev
+
+  deploy_prd:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment: prd
+    env:
+      DATABRICKS_HOST: https://adb-379336079866507.7.azuredatabricks.net
+      DATABRICKS_CLIENT_ID: ${{ vars.DATABRICKS_SP_CLIENT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: databricks/setup-cli@main
+      - run: databricks current-user me
+      - run: databricks bundle validate -t prd
+      - run: databricks bundle summary -t prd
+      - run: databricks bundle plan -t prd
+      - run: databricks bundle deploy -t prd
+      - run: databricks bundle plan -t prd
