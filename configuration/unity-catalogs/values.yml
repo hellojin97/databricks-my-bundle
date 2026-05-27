@@ -1,5 +1,10 @@
 # $schema: ../../bundle_config_schema.json
-#resources:
-#  catalogs:
-#    hj-krc-main:
-#      name: 
+resources:
+  catalogs:
+    hj-krc-main:
+      name: hj-krc-main
+      comment: "Catalog for DA's HYEONJIN KIM (MANAGED BY DAB DIRECT)"
+      grants:
+        - principal: "Databricks_JIN_ADMIN"
+          privileges:
+            - ALL_PRIVILEGES
