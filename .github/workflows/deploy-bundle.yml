@@ -24,15 +24,13 @@ permissions:
 
 env:
   DATABRICKS_AUTH_TYPE: github-oidc
-
+  DATABRICKS_HOST: https://adb-379336079866507.7.azuredatabricks.net
+  DATABRICKS_CLIENT_ID: ${{ vars.DATABRICKS_SP_CLIENT_ID }}
 jobs:
   deploy_dev:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: dev
-    env:
-      DATABRICKS_HOST: https://adb-379336079866507.7.azuredatabricks.net
-      DATABRICKS_CLIENT_ID: ${{ vars.DATABRICKS_SP_CLIENT_ID }}
     steps:
       - uses: actions/checkout@v6
       - uses: databricks/setup-cli@main
@@ -47,9 +45,6 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     environment: prd
-    env:
-      DATABRICKS_HOST: https://adb-379336079866507.7.azuredatabricks.net
-      DATABRICKS_CLIENT_ID: ${{ vars.DATABRICKS_SP_CLIENT_ID }}
     steps:
       - uses: actions/checkout@v6
       - uses: databricks/setup-cli@main
