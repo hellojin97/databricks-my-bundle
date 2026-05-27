@@ -7,6 +7,10 @@ include:
   - ./configuration/*/*.yml
   - ./configuration/*.yml
 
+permissions:
+  - group_name: "Databricks_JIN_ADMIN"
+    level: CAN_MANAGE
+
 targets:
   dev:
     default: true
