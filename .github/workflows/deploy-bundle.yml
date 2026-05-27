@@ -1,0 +1,27 @@
+name: deploy-bundle
+on:
+  push:
+    branches: [main]
+    paths:
+      - configuration/**
+      - src/**
+      - pyproject.toml
+      - .github/**
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy_run:
+    runs-on: ubuntu-latest
+    env:
+      DATABRICKS_AUTH_TYPE: github-oidc                       # ← 변경
+      DATABRICKS_HOST: https://adb-379336079866507.7.azuredatabricks.net
+      DATABRICKS_CLIENT_ID: ${{ vars.DATABRICKS_SP_CLIENT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: databricks/setup-cli@main
+      - run: databricks current-user me                        # 인증 확인용
+      - run: databricks bundle validate
