@@ -8,7 +8,7 @@ include:
   - ./configuration/*.yml
 
 permissions:
-  - group_name: ${var.service_principal_name}
+  - service_principal_name: ${var.service_principal_name}
     level: CAN_MANAGE
   - group_name: "Databricks_JIN_ADMIN"
     level: CAN_MANAGE
