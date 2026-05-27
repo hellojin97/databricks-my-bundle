@@ -1,0 +1,16 @@
+# $schema: ./bundle_config_schema.json
+bundle:
+  name: hj-krc-dabs
+  engine: direct
+
+include:
+  - ./configuration/*/*.yml
+  - ./configuration/*.yml
+
+targets:
+  dev:
+    default: true
+    mode: development
+    workspace:
+      host: https://adb-379336079866507.7.azuredatabricks.net/
+ 
