@@ -8,6 +8,9 @@ on:
       - src/**
       - pyproject.toml
       - .github/**
+      - databricks.yml
+      - uv.lock
+
   workflow_dispatch:
     inputs:
       target:
