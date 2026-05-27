@@ -1,5 +1,5 @@
 # $schema: ../bundle_config_schema.json
 variables:
   service_principal_name:
-    description: "81c94ded-d68c-407a-ac13-8a8b4b4bae12"
-    default: "Service principal name for deployment bundle"
+    default: "81c94ded-d68c-407a-ac13-8a8b4b4bae12"
+    description: "Service principal name for deployment bundle"
