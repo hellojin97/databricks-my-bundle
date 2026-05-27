@@ -14,14 +14,17 @@ permissions:
   contents: read
 
 jobs:
-  deploy_run:
+  deploy_dev:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
-      DATABRICKS_AUTH_TYPE: github-oidc                       # ← 변경
+      DATABRICKS_AUTH_TYPE: github-oidc
       DATABRICKS_HOST: https://adb-379336079866507.7.azuredatabricks.net
       DATABRICKS_CLIENT_ID: ${{ vars.DATABRICKS_SP_CLIENT_ID }}
     steps:
       - uses: actions/checkout@v6
       - uses: databricks/setup-cli@main
-      - run: databricks current-user me                        # 인증 확인용
-      - run: databricks bundle validate
+      - run: databricks current-user me
+      - run: databricks validate -t dev
+      - run: databricks summary -t dev
+      - run: databricks plan -t dev
