@@ -22,15 +22,9 @@ jobs:
       DATABRICKS_HOST: https://adb-379336079866507.7.azuredatabricks.net
       DATABRICKS_CLIENT_ID: ${{ vars.DATABRICKS_SP_CLIENT_ID }}
     steps:
-      - run: echo "========================================"
       - uses: actions/checkout@v6
-      - run: echo "========================================"
       - uses: databricks/setup-cli@main
-      - run: echo "========================================"
       - run: databricks current-user me
-      - run: echo "========================================"
       - run: databricks bundle validate -t dev
-      - run: echo "========================================"
       - run: databricks bundle summary -t dev
-      - run: echo "========================================"
       - run: databricks bundle plan -t dev

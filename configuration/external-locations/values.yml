@@ -1,7 +1,7 @@
 # $schema: ../../bundle_config_schema.json
-resources:
-  external_locations:
-    hj-krc-extloc:
-      name: "${bundle.name}-extloc"
-      credential_name: ""
-      url: ""
+#resources:
+#  external_locations:
+#    hj-krc-extloc:
+#      name: "${bundle.name}-extloc"
+#      credential_name: ""
+#      url: ""
