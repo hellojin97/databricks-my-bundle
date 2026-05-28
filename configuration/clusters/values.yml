@@ -28,11 +28,11 @@ resources:
           level: CAN_MANAGE
 
     # Multi Node Cluster
-    main_cluster_apcmp_multi:
+#    main_cluster_apcmp_multi:
 #      cluster_name: main_cluster_apcmp_multi
 #      kind: CLASSIC_PREVIEW
 #      is_single_node: false
-#      num_workers: 2
+#      num_workers: 1
 #      spark_version: 16.4.x-scala2.13
 #      node_type_id: Standard_F4s_v2
 #      driver_node_type_id: Standard_F4s_v2
