@@ -60,10 +60,11 @@ jobs:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: success
           color: 0x3498db
-          title: "Databricks bundle deploy starting (dev)"
+          noprefix: true
+          title: "🔵 Databricks bundle deploy starting (dev)"
+          url: ${{ env.DATABRICKS_HOST }}
           description: |
-            ref: `${{ github.ref_name }}`
-            commit: `${{ github.sha }}`
+            [Databricks workspace](${{ env.DATABRICKS_HOST }}) **dev** 타깃에 배포가 준비되었습니다.
 
             **plan**
             ```
@@ -78,10 +79,11 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: success
-          title: "Databricks bundle deploy succeeded (dev)"
+          noprefix: true
+          title: "🟢 Databricks bundle deploy succeeded (dev)"
+          url: ${{ env.DATABRICKS_HOST }}
           description: |
-            ref: `${{ github.ref_name }}`
-            commit: `${{ github.sha }}`
+            [Databricks workspace](${{ env.DATABRICKS_HOST }}) **dev** 타깃에 배포가 완료되었습니다.
 
       - name: bundle plan (after deploy) + drift detection
         id: plan_after
@@ -108,9 +110,13 @@ jobs:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: failure
           color: 0xff9900
-          title: "Bundle drift detected after deploy (dev)"
+          noprefix: true
+          title: "🟠 Bundle drift detected after deploy (dev)"
+          url: ${{ env.DATABRICKS_HOST }}
           description: |
-            deploy는 성공했으나 after-plan이 0 changes가 아닙니다.
+            [Databricks workspace](${{ env.DATABRICKS_HOST }}) **dev** 배포는 성공했으나 직후 plan이 0 changes가 아닙니다. 수렴 확인 필요.
+
+            **plan (after deploy)**
             ```
             ${{ steps.plan_after.outputs.plan }}
             ```
@@ -121,10 +127,11 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: failure
-          title: "Bundle deploy failed (dev)"
+          noprefix: true
+          title: "🔴 Bundle deploy failed (dev)"
+          url: ${{ env.DATABRICKS_HOST }}
           description: |
-            ref: `${{ github.ref_name }}`
-            commit: `${{ github.sha }}`
+            [Databricks workspace](${{ env.DATABRICKS_HOST }}) **dev** 타깃 배포가 실패했습니다. 위 context의 run 링크에서 로그를 확인하세요.
 
   deploy_prd:
     if: startsWith(github.ref, 'refs/tags/v')
