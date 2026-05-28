@@ -59,7 +59,7 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: failure
-          noprefix: true
+          nodetail: true
           title: "🔴 Bundle validate failed (dev)"
           url: ${{ env.DATABRICKS_HOST }}
           description: |
@@ -91,7 +91,7 @@ jobs:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: success
           color: 0x3498db
-          noprefix: true
+          nodetail: true
           title: "🔵 Databricks bundle deploy starting (dev)"
           url: ${{ env.DATABRICKS_HOST }}
           description: |
@@ -122,7 +122,7 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: success
-          noprefix: true
+          nodetail: true
           title: "🟢 Databricks bundle deploy succeeded (dev)"
           url: ${{ env.DATABRICKS_HOST }}
           description: |
@@ -153,7 +153,7 @@ jobs:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: failure
           color: 0xff9900
-          noprefix: true
+          nodetail: true
           title: "🟠 Bundle drift detected after deploy (dev)"
           url: ${{ env.DATABRICKS_HOST }}
           description: |
@@ -170,7 +170,7 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: failure
-          noprefix: true
+          nodetail: true
           title: "🔴 Bundle deploy failed (dev)"
           url: ${{ env.DATABRICKS_HOST }}
           description: |

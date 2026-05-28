@@ -8,6 +8,6 @@ authors = [
 ]
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "databricks-connect==16.4.*",
+    "databricks-connect==16.3.*",
     "ruff>=0.15.14",
 ]
