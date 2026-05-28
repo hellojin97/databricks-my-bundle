@@ -1,0 +1,23 @@
+# $schema: ../../bundle_config_schema.json
+resources:
+  clusters:
+    main_cluster_apcmp:
+      cluster_name: main_cluster_apcmp
+      kind: CLASSIC_PREVIEW
+      is_single_node: true
+      num_workers: 0
+      spark_version: 16.4.x-scala2.13
+      node_type_id: Standard_F4s_v2
+      driver_node_type_id: Standard_F4s_v2
+      autotermination_minutes: 15
+      data_security_mode: DATA_SECURITY_MODE_AUTO
+      single_user_name: "Databricks_JIN_ADMIN"
+      runtime_engine: STANDARD
+      aws_attributes:
+        availability: SPOT_WITH_FALLBACK
+      enable_elastic_disk: true
+      spark_conf:
+        PYSPARK_PYTHON: /databricks/python3/bin/python3
+      permissions:
+        - group_name: "Databricks_JIN_ADMIN"
+          level: CAN_MANAGE
