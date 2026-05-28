@@ -39,8 +39,19 @@ jobs:
       - uses: databricks/setup-cli@main
       - run: databricks current-user me
 
-      - id: validate
-        run: databricks bundle validate -t dev
+      - name: bundle validate (dev)
+        id: validate
+        run: |
+          set +e
+          databricks bundle validate -t dev 2>&1 | tee validate.log
+          EXIT=${PIPESTATUS[0]}
+          {
+            echo 'log<<LOG_EOF'
+            sed -E 's/\x1b\[[0-9;]*m//g' validate.log | tail -c 3500
+            echo
+            echo 'LOG_EOF'
+          } >> "$GITHUB_OUTPUT"
+          exit $EXIT
 
       - name: Notify validate failure
         if: ${{ failure() && steps.validate.outcome == 'failure' }}
@@ -53,6 +64,11 @@ jobs:
           url: ${{ env.DATABRICKS_HOST }}
           description: |
             **dev** 타깃의 bundle 정의 검증에 실패했습니다. `databricks.yml` / `configuration/` / 변수 설정을 확인하세요.
+
+            **error log (tail)**
+            ```
+            ${{ steps.validate.outputs.log }}
+            ```
 
       - run: databricks bundle summary -t dev
 
@@ -86,7 +102,19 @@ jobs:
             ${{ steps.plan_before.outputs.plan }}
             ```
 
-      - run: databricks bundle deploy -t dev
+      - name: bundle deploy (dev)
+        id: deploy
+        run: |
+          set +e
+          databricks bundle deploy -t dev 2>&1 | tee deploy.log
+          EXIT=${PIPESTATUS[0]}
+          {
+            echo 'log<<LOG_EOF'
+            sed -E 's/\x1b\[[0-9;]*m//g' deploy.log | tail -c 3500
+            echo
+            echo 'LOG_EOF'
+          } >> "$GITHUB_OUTPUT"
+          exit $EXIT
 
       - name: Notify deploy success
         if: success()
@@ -146,7 +174,12 @@ jobs:
           title: "🔴 Bundle deploy failed (dev)"
           url: ${{ env.DATABRICKS_HOST }}
           description: |
-            [Databricks workspace](${{ env.DATABRICKS_HOST }}) **dev** 타깃 배포가 실패했습니다. 위 context의 run 링크에서 로그를 확인하세요.
+            [Databricks workspace](${{ env.DATABRICKS_HOST }}) **dev** 타깃 배포가 실패했습니다.
+
+            **deploy log (tail)**
+            ```
+            ${{ steps.deploy.outputs.log }}
+            ```
 
   deploy_prd:
     if: startsWith(github.ref, 'refs/tags/v')
