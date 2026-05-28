@@ -10,7 +10,7 @@ resources:
       node_type_id: Standard_F4s_v2
       driver_node_type_id: Standard_F4s_v2
       autotermination_minutes: 15
-      data_security_mode: DATA_SECURITY_MODE_AUTO
+      data_security_mode: SINGLE_USER
       single_user_name: "Databricks_JIN_ADMIN"
       runtime_engine: STANDARD
       azure_attributes:
