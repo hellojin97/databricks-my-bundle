@@ -13,8 +13,8 @@ resources:
       data_security_mode: DATA_SECURITY_MODE_AUTO
       single_user_name: "Databricks_JIN_ADMIN"
       runtime_engine: STANDARD
-      aws_attributes:
-        availability: SPOT_WITH_FALLBACK
+      azure_attributes:
+        availability: SPOT_WITH_FALLBACK_AZURE
       enable_elastic_disk: true
       spark_conf:
         PYSPARK_PYTHON: /databricks/python3/bin/python3
