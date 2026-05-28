@@ -18,6 +18,10 @@ resources:
       enable_elastic_disk: true
       spark_conf:
         PYSPARK_PYTHON: /databricks/python3/bin/python3
+        "spark.databricks.cluster.profile": "singleNode"
+        "spark.master": "local[*, 4]"
+      custom_tags:
+        "ResourceClass": "SingleNode"
       permissions:
         - group_name: "Databricks_JIN_ADMIN"
           level: CAN_MANAGE
