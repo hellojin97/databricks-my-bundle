@@ -42,7 +42,60 @@ jobs:
       - run: databricks bundle summary -t dev
       - run: databricks bundle plan -t dev
       - run: databricks bundle deploy -t dev
-      - run: databricks bundle plan -t dev
+
+      - name: Notify deploy success
+        if: success()
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: success
+          title: "Databricks bundle deploy succeeded (dev)"
+          description: |
+            ref: `${{ github.ref_name }}`
+            commit: `${{ github.sha }}`
+
+      - name: bundle plan (after deploy) + drift detection
+        id: plan_after
+        run: |
+          set -o pipefail
+          databricks bundle plan -t dev | tee plan_after.txt
+          CLEAN=$(sed -E 's/\x1b\[[0-9;]*m//g' plan_after.txt)
+          if echo "$CLEAN" | grep -qiE 'no changes|0 to (add|change|delete)'; then
+            echo "drift=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "drift=true" >> "$GITHUB_OUTPUT"
+            {
+              echo 'plan<<PLAN_EOF'
+              echo "$CLEAN" | head -c 3500
+              echo
+              echo 'PLAN_EOF'
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Notify drift detected
+        if: steps.plan_after.outputs.drift == 'true'
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: failure
+          color: 0xff9900
+          title: "Bundle drift detected after deploy (dev)"
+          description: |
+            deploy는 성공했으나 after-plan이 0 changes가 아닙니다.
+            ```
+            ${{ steps.plan_after.outputs.plan }}
+            ```
+
+      - name: Notify job failure
+        if: failure()
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: failure
+          title: "Bundle deploy failed (dev)"
+          description: |
+            ref: `${{ github.ref_name }}`
+            commit: `${{ github.sha }}`
 
   deploy_prd:
     if: startsWith(github.ref, 'refs/tags/v')
