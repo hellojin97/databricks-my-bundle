@@ -109,6 +109,13 @@ jobs:
           JOB_STATUS: ${{ job.status }}
           DRIFT: ${{ steps.drift.outputs.detected }}
         run: |
+          case "$DRIFT" in
+            true)  DRIFT_TEXT="⚠️ 감지됨 — 직후 plan이 0 changes 아님" ;;
+            false) DRIFT_TEXT="없음" ;;
+            *)     DRIFT_TEXT="— (확인 안 됨)" ;;
+          esac
+          echo "drift_text=$DRIFT_TEXT" >> "$GITHUB_OUTPUT"
+
           if [ "$JOB_STATUS" = "success" ] && [ "$DRIFT" = "true" ]; then
             echo "title=🟠 Bundle deploy succeeded, drift detected (dev)" >> "$GITHUB_OUTPUT"
             echo "color=0xff9900" >> "$GITHUB_OUTPUT"
@@ -137,9 +144,11 @@ jobs:
           color: ${{ steps.notify.outputs.color }}
           url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           description: |
-            **dev** 타깃 배포. validate / plan / deploy 로그는 Actions run의 **Job Summary** 참고.
+            - **환경**: `dev`
+            - **Drift**: ${{ steps.notify.outputs.drift_text }}
+            - **로그**: [Job Summary](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) 참고
 
-            [Databricks workspace](${{ env.DATABRICKS_HOST }}) · [Actions run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            🔗 [Databricks workspace](${{ env.DATABRICKS_HOST }})
 
   deploy_prd:
     if: startsWith(github.ref, 'refs/tags/v')
