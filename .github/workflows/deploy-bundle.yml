@@ -40,146 +40,106 @@ jobs:
       - run: databricks current-user me
 
       - name: bundle validate (dev)
-        id: validate
         run: |
           set +e
           databricks bundle validate -t dev 2>&1 | tee validate.log
           EXIT=${PIPESTATUS[0]}
           {
-            echo 'log<<LOG_EOF'
-            sed -E 's/\x1b\[[0-9;]*m//g' validate.log | tail -c 3500
-            echo
-            echo 'LOG_EOF'
-          } >> "$GITHUB_OUTPUT"
+            echo "## validate"
+            echo '```'
+            sed -E 's/\x1b\[[0-9;]*m//g' validate.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
           exit $EXIT
-
-      - name: Notify validate failure
-        if: ${{ failure() && steps.validate.outcome == 'failure' }}
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK }}
-          status: failure
-          nodetail: true
-          title: "🔴 Bundle validate failed (dev)"
-          url: ${{ env.DATABRICKS_HOST }}
-          description: |
-            **dev** 타깃의 bundle 정의 검증에 실패했습니다. `databricks.yml` / `configuration/` / 변수 설정을 확인하세요.
-
-            **error log (tail)**
-            ```
-            ${{ steps.validate.outputs.log }}
-            ```
 
       - run: databricks bundle summary -t dev
 
       - name: bundle plan (before deploy)
-        id: plan_before
         run: |
-          set -o pipefail
-          databricks bundle plan -t dev | tee plan_before.txt
-          CLEAN=$(sed -E 's/\x1b\[[0-9;]*m//g' plan_before.txt)
+          set +e
+          databricks bundle plan -t dev 2>&1 | tee plan_before.txt
+          EXIT=${PIPESTATUS[0]}
           {
-            echo 'plan<<PLAN_EOF'
-            echo "$CLEAN" | head -c 3500
-            echo
-            echo 'PLAN_EOF'
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Notify deploy starting
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK }}
-          status: success
-          color: 0x3498db
-          nodetail: true
-          title: "🔵 Databricks bundle deploy starting (dev)"
-          url: ${{ env.DATABRICKS_HOST }}
-          description: |
-            [Databricks workspace](${{ env.DATABRICKS_HOST }}) **dev** 타깃에 배포가 준비되었습니다.
-
-            **plan**
-            ```
-            ${{ steps.plan_before.outputs.plan }}
-            ```
+            echo "## plan (before deploy)"
+            echo '```'
+            sed -E 's/\x1b\[[0-9;]*m//g' plan_before.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $EXIT
 
       - name: bundle deploy (dev)
-        id: deploy
         run: |
           set +e
           databricks bundle deploy -t dev 2>&1 | tee deploy.log
           EXIT=${PIPESTATUS[0]}
           {
-            echo 'log<<LOG_EOF'
-            sed -E 's/\x1b\[[0-9;]*m//g' deploy.log | tail -c 3500
-            echo
-            echo 'LOG_EOF'
-          } >> "$GITHUB_OUTPUT"
+            echo "## deploy"
+            echo '```'
+            sed -E 's/\x1b\[[0-9;]*m//g' deploy.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
           exit $EXIT
 
-      - name: Notify deploy success
-        if: success()
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK }}
-          status: success
-          nodetail: true
-          title: "🟢 Databricks bundle deploy succeeded (dev)"
-          url: ${{ env.DATABRICKS_HOST }}
-          description: |
-            [Databricks workspace](${{ env.DATABRICKS_HOST }}) **dev** 타깃에 배포가 완료되었습니다.
-
       - name: bundle plan (after deploy) + drift detection
-        id: plan_after
+        id: drift
         run: |
-          set -o pipefail
-          databricks bundle plan -t dev | tee plan_after.txt
+          set +e
+          databricks bundle plan -t dev 2>&1 | tee plan_after.txt
+          EXIT=${PIPESTATUS[0]}
           CLEAN=$(sed -E 's/\x1b\[[0-9;]*m//g' plan_after.txt)
-          if echo "$CLEAN" | grep -qiE 'no changes|0 to (add|change|delete)'; then
-            echo "drift=false" >> "$GITHUB_OUTPUT"
+          {
+            echo "## plan (after deploy)"
+            echo '```'
+            echo "$CLEAN"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ $EXIT -eq 0 ]; then
+            if echo "$CLEAN" | grep -qiE 'no changes|0 to (add|change|delete)'; then
+              echo "detected=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "detected=true" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+          exit $EXIT
+
+      - name: Compute notification fields
+        if: always()
+        id: notify
+        env:
+          JOB_STATUS: ${{ job.status }}
+          DRIFT: ${{ steps.drift.outputs.detected }}
+        run: |
+          if [ "$JOB_STATUS" = "success" ] && [ "$DRIFT" = "true" ]; then
+            echo "title=🟠 Bundle deploy succeeded, drift detected (dev)" >> "$GITHUB_OUTPUT"
+            echo "color=0xff9900" >> "$GITHUB_OUTPUT"
+          elif [ "$JOB_STATUS" = "success" ]; then
+            echo "title=🟢 Bundle deploy succeeded (dev)" >> "$GITHUB_OUTPUT"
+            echo "color=0x2ecc71" >> "$GITHUB_OUTPUT"
+          elif [ "$JOB_STATUS" = "failure" ]; then
+            echo "title=🔴 Bundle deploy failed (dev)" >> "$GITHUB_OUTPUT"
+            echo "color=0xe74c3c" >> "$GITHUB_OUTPUT"
+          elif [ "$JOB_STATUS" = "cancelled" ]; then
+            echo "title=⚪ Bundle deploy cancelled (dev)" >> "$GITHUB_OUTPUT"
+            echo "color=0x95a5a6" >> "$GITHUB_OUTPUT"
           else
-            echo "drift=true" >> "$GITHUB_OUTPUT"
-            {
-              echo 'plan<<PLAN_EOF'
-              echo "$CLEAN" | head -c 3500
-              echo
-              echo 'PLAN_EOF'
-            } >> "$GITHUB_OUTPUT"
+            echo "title=❓ Bundle deploy - unknown status (dev)" >> "$GITHUB_OUTPUT"
+            echo "color=0x7f8c8d" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Notify drift detected
-        if: steps.plan_after.outputs.drift == 'true'
+      - name: Notify Discord
+        if: always()
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
-          status: failure
-          color: 0xff9900
-          nodetail: true
-          title: "🟠 Bundle drift detected after deploy (dev)"
-          url: ${{ env.DATABRICKS_HOST }}
+          status: ${{ job.status }}
+          noprefix: true
+          title: ${{ steps.notify.outputs.title }}
+          color: ${{ steps.notify.outputs.color }}
+          url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           description: |
-            [Databricks workspace](${{ env.DATABRICKS_HOST }}) **dev** 배포는 성공했으나 직후 plan이 0 changes가 아닙니다. 수렴 확인 필요.
+            **dev** 타깃 배포. validate / plan / deploy 로그는 Actions run의 **Job Summary** 참고.
 
-            **plan (after deploy)**
-            ```
-            ${{ steps.plan_after.outputs.plan }}
-            ```
-
-      - name: Notify job failure
-        if: ${{ failure() && steps.validate.outcome != 'failure' }}
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK }}
-          status: failure
-          nodetail: true
-          title: "🔴 Bundle deploy failed (dev)"
-          url: ${{ env.DATABRICKS_HOST }}
-          description: |
-            [Databricks workspace](${{ env.DATABRICKS_HOST }}) **dev** 타깃 배포가 실패했습니다.
-
-            **deploy log (tail)**
-            ```
-            ${{ steps.deploy.outputs.log }}
-            ```
+            [Databricks workspace](${{ env.DATABRICKS_HOST }}) · [Actions run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
   deploy_prd:
     if: startsWith(github.ref, 'refs/tags/v')
