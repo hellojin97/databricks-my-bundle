@@ -6,7 +6,7 @@ resources:
       kind: CLASSIC_PREVIEW
       is_single_node: true
       num_workers: 0
-      spark_version: 16.4.24-scala2.13
+      spark_version: 16.4.x-scala2.13
       node_type_id: Standard_F4s_v2
       driver_node_type_id: Standard_F4s_v2
       autotermination_minutes: 15
