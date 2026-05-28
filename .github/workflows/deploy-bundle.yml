@@ -40,7 +40,36 @@ jobs:
       - run: databricks current-user me
       - run: databricks bundle validate -t dev
       - run: databricks bundle summary -t dev
-      - run: databricks bundle plan -t dev
+
+      - name: bundle plan (before deploy)
+        id: plan_before
+        run: |
+          set -o pipefail
+          databricks bundle plan -t dev | tee plan_before.txt
+          CLEAN=$(sed -E 's/\x1b\[[0-9;]*m//g' plan_before.txt)
+          {
+            echo 'plan<<PLAN_EOF'
+            echo "$CLEAN" | head -c 3500
+            echo
+            echo 'PLAN_EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Notify deploy starting
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: success
+          color: 0x3498db
+          title: "Databricks bundle deploy starting (dev)"
+          description: |
+            ref: `${{ github.ref_name }}`
+            commit: `${{ github.sha }}`
+
+            **plan**
+            ```
+            ${{ steps.plan_before.outputs.plan }}
+            ```
+
       - run: databricks bundle deploy -t dev
 
       - name: Notify deploy success
