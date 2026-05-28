@@ -3,3 +3,4 @@ variables:
   service_principal_name:
     default: "81c94ded-d68c-407a-ac13-8a8b4b4bae12"
     description: "Service principal name for deployment bundle"
+  test:

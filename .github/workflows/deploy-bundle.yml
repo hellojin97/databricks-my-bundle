@@ -38,7 +38,22 @@ jobs:
       - uses: actions/checkout@v6
       - uses: databricks/setup-cli@main
       - run: databricks current-user me
-      - run: databricks bundle validate -t dev
+
+      - id: validate
+        run: databricks bundle validate -t dev
+
+      - name: Notify validate failure
+        if: ${{ failure() && steps.validate.outcome == 'failure' }}
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: failure
+          noprefix: true
+          title: "🔴 Bundle validate failed (dev)"
+          url: ${{ env.DATABRICKS_HOST }}
+          description: |
+            **dev** 타깃의 bundle 정의 검증에 실패했습니다. `databricks.yml` / `configuration/` / 변수 설정을 확인하세요.
+
       - run: databricks bundle summary -t dev
 
       - name: bundle plan (before deploy)
@@ -122,7 +137,7 @@ jobs:
             ```
 
       - name: Notify job failure
-        if: failure()
+        if: ${{ failure() && steps.validate.outcome != 'failure' }}
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
