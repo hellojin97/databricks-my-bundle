@@ -26,24 +26,25 @@ resources:
       permissions:
         - group_name: "Databricks_JIN_ADMIN"
           level: CAN_MANAGE
+
     # Multi Node Cluster
-#    main_cluster_apcmp_multi:
-#      cluster_name: main_cluster_apcmp_multi
-#      kind: CLASSIC_PREVIEW
-#      is_single_node: false
-#      num_workers: 2
-#      spark_version: 16.4.x-scala2.13
-#      node_type_id: Standard_F4s_v2
-#      driver_node_type_id: Standard_F4s_v2
-#      autotermination_minutes: 15
-#      data_security_mode: SINGLE_USER
-#      single_user_name: "Databricks_JIN_ADMIN"
-#      runtime_engine: STANDARD
-#      azure_attributes:
-#        availability: SPOT_WITH_FALLBACK_AZURE
-#      enable_elastic_disk: true
-#      spark_conf:
-#        PYSPARK_PYTHON: /databricks/python3/bin/python3
-#      permissions:
-#        - group_name: "Databricks_JIN_ADMIN"
-#          level: CAN_MANAGE
+    main_cluster_apcmp_multi:
+      cluster_name: main_cluster_apcmp_multi
+      kind: CLASSIC_PREVIEW
+      is_single_node: false
+      num_workers: 2
+      spark_version: 16.4.x-scala2.13
+      node_type_id: Standard_F4s_v2
+      driver_node_type_id: Standard_F4s_v2
+      autotermination_minutes: 15
+      data_security_mode: SINGLE_USER
+      single_user_name: "Databricks_JIN_ADMIN"
+      runtime_engine: STANDARD
+      azure_attributes:
+        availability: SPOT_WITH_FALLBACK_AZURE
+      enable_elastic_disk: true
+      spark_conf:
+        PYSPARK_PYTHON: /databricks/python3/bin/python3
+      permissions:
+        - group_name: "Databricks_JIN_ADMIN"
+          level: CAN_MANAGE
