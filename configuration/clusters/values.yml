@@ -28,7 +28,7 @@ resources:
           level: CAN_MANAGE
 
     # Multi Node Cluster
-#    main_cluster_apcmp_multi:
+    main_cluster_apcmp_multi:
 #      cluster_name: main_cluster_apcmp_multi
 #      kind: CLASSIC_PREVIEW
 #      is_single_node: false
