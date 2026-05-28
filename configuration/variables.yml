@@ -3,3 +3,11 @@ variables:
   service_principal_name:
     default: "81c94ded-d68c-407a-ac13-8a8b4b4bae12"
     description: "Service principal name for deployment bundle"
+  cluster_id:
+    default: ""
+    description: "Cluster ID for deployment bundle jobs(Only for development mode)"
+
+targets:
+  dev:
+    variables:
+      cluster_id: "0528-084819-j7k8l1id"
