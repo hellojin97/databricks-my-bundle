@@ -76,11 +76,10 @@ jobs:
         id: plan_before
         run: |
           set -o pipefail
-          databricks bundle plan -t dev | tee plan_before.txt
-          CLEAN=$(sed -E 's/\x1b\[[0-9;]*m//g' plan_before.txt)
+          databricks bundle plan -t dev -o json | tee plan_before.json
           {
             echo 'plan<<PLAN_EOF'
-            echo "$CLEAN" | head -c 3500
+            head -c 3500 plan_before.json
             echo
             echo 'PLAN_EOF'
           } >> "$GITHUB_OUTPUT"
@@ -98,7 +97,7 @@ jobs:
             [Databricks workspace](${{ env.DATABRICKS_HOST }}) **dev** 타깃에 배포가 준비되었습니다.
 
             **plan**
-            ```
+            ```json
             ${{ steps.plan_before.outputs.plan }}
             ```
 
