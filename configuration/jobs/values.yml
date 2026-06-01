@@ -1,5 +1,5 @@
 # $schema: ../../bundle_config_schema.json
-#resources:
+resources:
   jobs:
     generate_ecommerce_data:
       name: generate-ecommerce-data
