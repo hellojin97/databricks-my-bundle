@@ -14,7 +14,7 @@ resources:
 
   schemas:
     lib-schema:
-      catalog_name: home-catalog
+      catalog_name: ${resources.catalogs.home-catalog.name}
       name: libs
       grants:
         - principal: "account users"
@@ -22,8 +22,8 @@ resources:
             - USE_SCHEMA
   volumes:
     whl-volume:
-      catalog_name: dataplay_home
-      schema_name: libs
+      catalog_name: ${resources.catalogs.home-catalog.name}
+      schema_name: ${resources.catalogs.lib-schema.name}
       name: wheels
       volume_type: MANAGED
       grants:
