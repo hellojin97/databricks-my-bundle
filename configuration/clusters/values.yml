@@ -12,7 +12,7 @@ resources:
       driver_node_type_id: Standard_F4s_v2
       autotermination_minutes: 15
       data_security_mode: SINGLE_USER
-      single_user_name: "Databricks_JIN_ADMIN"
+      single_user_name: "DATAPLAY_MANAGER"
       runtime_engine: STANDARD
       azure_attributes:
         availability: SPOT_WITH_FALLBACK_AZURE
@@ -24,7 +24,7 @@ resources:
       custom_tags:
         "ResourceClass": "SingleNode"
       permissions:
-        - group_name: "Databricks_JIN_ADMIN"
+        - group_name: "DATAPLAY_MANAGER"
           level: CAN_MANAGE
 
     # Multi Node Cluster
