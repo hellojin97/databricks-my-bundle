@@ -1,7 +1,7 @@
 # $schema: ../../bundle_config_schema.json
 resources:
   volumes:
-    hj-main-volume:
+    main-volume:
       name: hj-main-volume
       comment: "Main volume"
       catalog_name: ${resources.catalogs.hj-krc-main.name}

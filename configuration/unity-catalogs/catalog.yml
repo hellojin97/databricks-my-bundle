@@ -1,7 +1,7 @@
 # $schema: ../../bundle_config_schema.json
 resources:
   catalogs:
-    hj-krc-main:
+    main-catalog:
       name: hj-krc-main
       comment: "Catalog for DA's HYEONJIN KIM (MANAGED BY DAB DIRECT)"
       grants:
