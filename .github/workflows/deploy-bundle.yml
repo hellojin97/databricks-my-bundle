@@ -27,7 +27,7 @@ permissions:
 
 env:
   DATABRICKS_AUTH_TYPE: github-oidc
-  DATABRICKS_HOST: https://adb-379336079866507.7.azuredatabricks.net
+  DATABRICKS_HOST: https://adb-7405613177889652.12.azuredatabricks.net
   DATABRICKS_CLIENT_ID: ${{ vars.DATABRICKS_SP_CLIENT_ID }}
 jobs:
   deploy_dev:
