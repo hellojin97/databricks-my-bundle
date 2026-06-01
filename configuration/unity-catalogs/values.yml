@@ -1,0 +1,32 @@
+# $schema: ../../bundle_config_schema.json
+resources:
+  catalogs:
+    home-catalog:
+      name: dataplay_home
+      grants:
+        - principal: "DATAPLAY_MANAGER"
+          privileges:
+            - ALL_PRIVILEGES
+            - MANAGE
+        - principal: "account users"
+          privileges:
+            - USE_CATALOG
+
+  schemas:
+    lib-schema:
+      catalog_name: home-catalog
+      name: libs
+      grants:
+        - principal: "account users"
+          privileges:
+            - USE_SCHEMA
+  volumes:
+    whl-volume:
+      catalog_name: dataplay_home
+      schema_name: libs
+      name: wheels
+      volume_type: MANAGED
+      grants:
+        - principal: "account users"
+          privileges:
+            - READ_VOLUME

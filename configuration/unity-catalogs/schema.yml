@@ -1,7 +1,0 @@
-# $schema: ../../bundle_config_schema.json
-resources:
-  schemas:
-    main-schema:
-      name: main
-      comment: "Main schema for hj"
-      catalog_name: ${resources.catalogs.main-catalog.name}
