@@ -10,7 +10,6 @@ on:
       - .github/**
       - databricks.yml
       - uv.lock
-
   workflow_dispatch:
     inputs:
       target:
@@ -31,6 +30,9 @@ env:
   DATABRICKS_CLIENT_ID: ${{ vars.DATABRICKS_SP_CLIENT_ID }}
 jobs:
   deploy_dev:
+    concurrency:
+      group: databricks-deploy-dev
+      cancel-in-progress: false
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: dev
