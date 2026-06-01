@@ -47,4 +47,3 @@ resources:
         - principal: "account users"
           privileges:
             - READ_VOLUME
-            - READ_FILES
