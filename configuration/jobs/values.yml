@@ -1,24 +1,24 @@
 # $schema: ../../bundle_config_schema.json
-resources:
-  jobs:
-    generate_ecommerce_data:
-      name: generate-ecommerce-data
-      description: "ecommerce_generator wheel로 가짜 이커머스 raw 데이터(parquet) 생성"
-      tasks:
-        - task_key: generate_raw_data
-          # dev 타깃은 targets.dev.cluster_id가 모든 잡 컴퓨트를 덮어씀.
-          # prd 등에서는 cluster_id 변수를 설정해야 함.
-          existing_cluster_id: ${resources.clusters.main_cluster_apcmp.id}
-          python_wheel_task:
-            package_name: ecommerce_generator
-            entry_point: generate-data
-            parameters:
-              - "--start-date"
-              - ${var.period_start}
-              - "--end-date"
-              - ${var.period_end}
-              - "--output-volume"
-              - ${var.raw_output_dir}
-          libraries:
-            # artifacts.ecommerce_wheel가 빌드한 wheel (경로는 이 파일 기준 상대)
-            - whl: ../../dist/*.whl
+#resources:
+#  jobs:
+#    generate_ecommerce_data:
+#      name: generate-ecommerce-data
+#      description: "ecommerce_generator wheel로 가짜 이커머스 raw 데이터(parquet) 생성"
+#      tasks:
+#        - task_key: generate_raw_data
+#          # dev 타깃은 targets.dev.cluster_id가 모든 잡 컴퓨트를 덮어씀.
+#          # prd 등에서는 cluster_id 변수를 설정해야 함.
+#          existing_cluster_id: ${resources.clusters.main_cluster_apcmp.id}
+#          python_wheel_task:
+#            package_name: ecommerce_generator
+#            entry_point: generate-data
+#            parameters:
+#              - "--start-date"
+#              - ${var.period_start}
+#              - "--end-date"
+#              - ${var.period_end}
+#              - "--output-volume"
+#              - ${var.raw_output_dir}
+#          libraries:
+#            # artifacts.ecommerce_wheel가 빌드한 wheel (경로는 이 파일 기준 상대)
+#            - whl: ../../dist/*.whl
