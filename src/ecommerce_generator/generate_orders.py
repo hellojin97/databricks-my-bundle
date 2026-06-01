@@ -140,57 +140,51 @@ def _generate_timestamps(
     seconds_in_day = weighted_hours * 3600 + random_minutes_seconds
     order_timestamps = order_dates + seconds_in_day.astype("timedelta64[s]")
 
-    # 단계 4: 계절성 - 블랙프라이데이 기간 over-sample
-    # 전체의 5%를 블프 주간으로 강제 이동
-    bf_fraction = 0.05
-    n_bf_orders = int(n_total * bf_fraction)
-    bf_indices = rng.choice(n_total, size=n_bf_orders, replace=False)
-
-    # 기간에 걸친 연도들
+    # 단계 4: 계절성 부스트 — 기간 내에 해당 시즌 날짜가 있을 때만 적용.
+    # 짧은 기간(블프/12월 미포함)에는 풀이 비므로 부스트를 건너뛴다.
+    period_start_date = order_starts.min().astype("datetime64[D]").item()
     start_year = int(order_starts.min().astype("datetime64[Y]").astype(int) + 1970)
     end_year = end_date.year
+
+    def _shift_to_dates(indices: np.ndarray, target_dates: np.ndarray) -> None:
+        """선택된 주문의 날짜만 target 풀에서 랜덤 교체 (시각은 유지)."""
+        chosen = rng.choice(target_dates, size=len(indices))
+        seconds_in_day = (
+            order_timestamps[indices]
+            - order_timestamps[indices].astype("datetime64[D]").astype("datetime64[s]")
+        )
+        order_timestamps[indices] = chosen + seconds_in_day
+
+    # 블랙프라이데이 ~ 사이버먼데이 over-sample (전체의 5%)
     bf_dates_pool: list[date] = []
     for y in range(start_year, end_year + 1):
         bf = _black_friday_date(y)
-        # 블프 ~ 사이버먼데이 (월요일까지 4일)
-        for d_offset in range(4):
-            cand = bf.replace(day=bf.day + d_offset) if bf.day + d_offset <= 30 else None
-            if cand is not None:
-                bf_dates_pool.append(cand)
+        for d_offset in range(4):  # 블프 ~ 사이버먼데이(월) 4일
+            if bf.day + d_offset <= 30:
+                bf_dates_pool.append(bf.replace(day=bf.day + d_offset))
+    bf_dates_pool = [d for d in bf_dates_pool if period_start_date <= d <= end_date]
 
-    bf_dates_np = [d for d in bf_dates_pool if d <= end_date]
-    bf_dates_np = np.array(bf_dates_pool, dtype="datetime64[s]")
+    bf_indices = np.array([], dtype=int)
+    n_bf_orders = int(n_total * 0.05)
+    if bf_dates_pool and n_bf_orders > 0:
+        bf_indices = rng.choice(n_total, size=n_bf_orders, replace=False)
+        _shift_to_dates(bf_indices, np.array(bf_dates_pool, dtype="datetime64[s]"))
 
-    # 선택된 인덱스의 날짜를 블프 풀에서 랜덤하게 교체 (hour는 유지)
-    chosen_bf_dates = rng.choice(bf_dates_np, size=n_bf_orders)
-    current_seconds_in_day = (
-        order_timestamps[bf_indices] - order_timestamps[bf_indices].astype("datetime64[D]").astype("datetime64[s]")
-    )
-    order_timestamps[bf_indices] = chosen_bf_dates + current_seconds_in_day
+    # 12월 추가 부스트 (블프와 겹치지 않게, 전체의 3%)
+    dec_dates_pool = [
+        date(y, 12, d)
+        for y in range(start_year, end_year + 1)
+        for d in range(1, 32)
+    ]
+    dec_dates_pool = [d for d in dec_dates_pool if period_start_date <= d <= end_date]
 
-    # 12월 추가 부스트 (선택된 5%는 그대로, 추가로 3%를 12월로)
-    dec_fraction = 0.03
-    n_dec_orders = int(n_total * dec_fraction)
-    available_idx = np.setdiff1d(np.arange(n_total), bf_indices)
-    dec_indices = rng.choice(available_idx, size=n_dec_orders, replace=False)
-
-    # 12월 날짜 풀 (각 연도의 12월 1~31일)
-    dec_dates_pool: list[date] = []
-    for y in range(start_year, end_year + 1):
-        for d in range(1, 32):
-            try:
-                dec_dates_pool.append(date(y, 12, d))
-            except ValueError:
-                pass
-
-    dec_dates_pool = [d for d in dec_dates_pool if d <= end_date]
-    dec_dates_np = np.array(dec_dates_pool, dtype="datetime64[s]")
-    chosen_dec_dates = rng.choice(dec_dates_np, size=n_dec_orders)
-    current_seconds_in_day = (
-        order_timestamps[dec_indices]
-        - order_timestamps[dec_indices].astype("datetime64[D]").astype("datetime64[s]")
-    )
-    order_timestamps[dec_indices] = chosen_dec_dates + current_seconds_in_day
+    n_dec_orders = int(n_total * 0.03)
+    if dec_dates_pool and n_dec_orders > 0:
+        available_idx = np.setdiff1d(np.arange(n_total), bf_indices)
+        n_dec_orders = min(n_dec_orders, len(available_idx))
+        if n_dec_orders > 0:
+            dec_indices = rng.choice(available_idx, size=n_dec_orders, replace=False)
+            _shift_to_dates(dec_indices, np.array(dec_dates_pool, dtype="datetime64[s]"))
 
     # end_date 넘어가는 timestamp는 clipping (블프 풀에 미래 날짜가 섞일 수 있어서)
     order_timestamps = np.minimum(order_timestamps, end_ts)

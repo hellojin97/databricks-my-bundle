@@ -1,5 +1,5 @@
 [project]
-name = "databricks-my-bundle"
+name = "ecommerce-generator"
 version = "0.1.0"
 description = "E-commerce fake data generator packaged as a wheel for Databricks bundle deployment"
 readme = "README.md"
@@ -26,8 +26,5 @@ dev = [
 ]
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/ecommerce_generator"]
+requires = ["uv_build>=0.7.19,<0.8.0"]
+build-backend = "uv_build"

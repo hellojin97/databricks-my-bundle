@@ -10,10 +10,14 @@ resources:
           # prd 등에서는 cluster_id 변수를 설정해야 함.
           existing_cluster_id: ${var.cluster_id}
           python_wheel_task:
-            package_name: databricks_my_bundle
+            package_name: ecommerce_generator
             entry_point: generate-data
             parameters:
-              - "--output-dir"
+              - "--start-date"
+              - ${var.period_start}
+              - "--end-date"
+              - ${var.period_end}
+              - "--output-volume"
               - ${var.raw_output_dir}
           libraries:
             # artifacts.ecommerce_wheel가 빌드한 wheel (경로는 이 파일 기준 상대)

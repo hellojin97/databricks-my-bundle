@@ -3,9 +3,15 @@
 콘솔 스크립트(`generate-data`) 및 Databricks python_wheel_task의 진입점.
 
 사용법:
-    generate-data                          # 패키지 내장 config.yml 사용
-    generate-data --output-dir /Volumes/.../raw
-    generate-data --config /path/to/config.yml
+    # 필수: 기간 + 출력 경로
+    generate-data --start-date 2025-05-11 --end-date 2026-05-11 \
+                  --output-volume /Volumes/<catalog>/<schema>/<volume>/raw
+
+    # 선택: 볼륨/dirty_data 오버라이드 (미지정 시 config.yml 값)
+    generate-data --start-date ... --end-date ... --output-volume ... \
+                  --users 10000 --products 500 --null-rate-gender 0.1
+
+seed 및 선택 인자의 기본값은 config.yml에서 읽는다 (--config로 교체 가능).
 
 Phase 1: 차원 테이블 (categories, users, products)
 Phase 2: 팩트 테이블 (orders, order_items)
@@ -30,22 +36,61 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument(
         "--config",
         default=None,
-        help="config.yml 경로 (기본: 패키지에 내장된 config.yml)",
+        help="config.yml 경로 (기본: 패키지 내장). seed 및 미지정 옵션의 기본값 출처",
+    )
+    # 필수 인자 — 매 실행마다 명시적으로 지정
+    parser.add_argument("--start-date", required=True, help="분석 기간 시작 (YYYY-MM-DD)")
+    parser.add_argument("--end-date", required=True, help="분석 기간 종료 (YYYY-MM-DD)")
+    parser.add_argument(
+        "--output-volume", required=True, help="출력 경로 (UC Volume 등 디렉토리)"
+    )
+    # 선택 인자 — 미지정 시 config.yml 값 사용
+    parser.add_argument(
+        "--users", type=int, default=None, help="유저 수 (기본: config volumes.users)"
     )
     parser.add_argument(
-        "--output-dir",
-        default=None,
-        help="출력 디렉토리 (config.yml의 output_dir을 덮어씀)",
+        "--products", type=int, default=None, help="상품 수 (기본: config volumes.products)"
+    )
+    parser.add_argument(
+        "--null-rate-gender", type=float, default=None,
+        help="유저 gender NULL 비율 (기본: config dirty_data.null_rate_gender)",
+    )
+    parser.add_argument(
+        "--null-rate-brand", type=float, default=None,
+        help="상품 brand NULL 비율 (기본: config dirty_data.null_rate_brand)",
+    )
+    parser.add_argument(
+        "--discontinued-rate", type=float, default=None,
+        help="상품 단종 비율 (기본: config dirty_data.discontinued_rate)",
     )
     args = parser.parse_args(argv)
 
     cfg = load_config(args.config)
 
-    start_date = date.fromisoformat(cfg["period"]["start"])
-    end_date = date.fromisoformat(cfg["period"]["end"])
+    start_date = date.fromisoformat(args.start_date)
+    end_date = date.fromisoformat(args.end_date)
     seed = cfg["seed"]
-    output_dir = Path(args.output_dir if args.output_dir else cfg["output_dir"])
+    output_dir = Path(args.output_volume)
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    # 선택 인자 해석: CLI 값이 있으면 우선, 없으면 config.yml 기본값
+    n_users = args.users if args.users is not None else cfg["volumes"]["users"]
+    n_products = args.products if args.products is not None else cfg["volumes"]["products"]
+    null_rate_gender = (
+        args.null_rate_gender
+        if args.null_rate_gender is not None
+        else cfg["dirty_data"]["null_rate_gender"]
+    )
+    null_rate_brand = (
+        args.null_rate_brand
+        if args.null_rate_brand is not None
+        else cfg["dirty_data"]["null_rate_brand"]
+    )
+    discontinued_rate = (
+        args.discontinued_rate
+        if args.discontinued_rate is not None
+        else cfg["dirty_data"]["discontinued_rate"]
+    )
 
     print("=" * 64)
     print("E-Commerce Fake Data Generation - Phase 1 (Dimensions)")
@@ -67,10 +112,10 @@ def main(argv: list[str] | None = None) -> None:
     print("\n[2/3] Users")
     t0 = time.time()
     users = generate_users.generate(
-        n_users=cfg["volumes"]["users"],
+        n_users=n_users,
         start_date=start_date,
         end_date=end_date,
-        null_rate_gender=cfg["dirty_data"]["null_rate_gender"],
+        null_rate_gender=null_rate_gender,
         seed=seed,
     )
     write_parquet(users, output_dir / "users.parquet")
@@ -80,12 +125,12 @@ def main(argv: list[str] | None = None) -> None:
     print("\n[3/3] Products")
     t0 = time.time()
     products = generate_products.generate(
-        n_products=cfg["volumes"]["products"],
+        n_products=n_products,
         categories_df=categories,
         start_date=start_date,
         end_date=end_date,
-        null_rate_brand=cfg["dirty_data"]["null_rate_brand"],
-        discontinued_rate=cfg["dirty_data"]["discontinued_rate"],
+        null_rate_brand=null_rate_brand,
+        discontinued_rate=discontinued_rate,
         seed=seed,
     )
     write_parquet(products, output_dir / "products.parquet")

@@ -1,13 +1,8 @@
-# 데이터 생성 설정
-# 한 곳에서 모든 파라미터를 관리해서 재현성/실험 편하게
+# 데이터 생성 설정 (선택 인자의 기본값)
+# period, output 경로는 필수 CLI 인자(--start-date/--end-date/--output-volume)로 받는다.
+# 아래 값들은 CLI에서 미지정한 선택 인자의 기본값으로만 쓰인다.
 
 seed: 42
-
-period:
-  start: "2025-05-11"
-  end: "2026-05-11"
-
-output_dir: "../../output/raw"
 
 volumes:
   users: 100000
