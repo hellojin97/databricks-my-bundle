@@ -26,3 +26,5 @@ targets:
     default: true
     mode: development
     cluster_id: ${var.cluster_id}
+    workspace:
+      artifact_path: /Volumes/hj-krc-main/main/hj-main-volume/artifacts
