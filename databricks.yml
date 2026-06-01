@@ -26,7 +26,7 @@ permissions:
 targets:
   dev:
     default: true
-    cluster_id: ${var.cluster_id}
+    cluster_id: ${resources.clusters.main_cluster_apcmp.id}
     workspace:
       root_path: /Workspace/bundles/hj-krc-dabs
       artifact_path: /Volumes/hj-krc-main/main/hj-main-volume/artifacts
