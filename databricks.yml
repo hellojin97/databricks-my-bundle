@@ -2,10 +2,6 @@
 bundle:
   name: hj-krc-dabs
   engine: direct
-  deployment:
-    lock:
-      enabled: true
-      force: true
 
 include:
   - ./configuration/*/*.yml

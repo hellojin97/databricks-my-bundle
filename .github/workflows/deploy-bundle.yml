@@ -90,7 +90,7 @@ jobs:
       - name: bundle deploy (dev)
         run: |
           set +e
-          databricks bundle deploy -t dev 2>&1 | tee deploy.log
+          databricks bundle deploy -t dev --force-lock --auto-approve 2>&1 | tee deploy.log
           EXIT=${PIPESTATUS[0]}
           {
             echo "## deploy"
