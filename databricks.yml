@@ -20,10 +20,13 @@ permissions:
     level: CAN_MANAGE
   - group_name: "Databricks_JIN_ADMIN"
     level: CAN_MANAGE
+  - group_name: "IN4U-Admin"
+    level: CAN_MANAGE
 
 targets:
   dev:
     default: true
     cluster_id: ${var.cluster_id}
     workspace:
-      artifact_path: /Volumes/hj-krc-main/main/hj-main-volume/artifacts
+      root_path: /Workspace/bundles/hj-krc-dabs
+#      artifact_path: /Volumes/hj-krc-main/main/hj-main-volume/artifacts

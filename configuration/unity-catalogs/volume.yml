@@ -4,5 +4,5 @@ resources:
     main-volume:
       name: hj-main-volume
       comment: "Main volume"
-      catalog_name: ${resources.catalogs.hj-krc-main.name}
-      schema_name: ${resources.schemas.hj-krc-main.name}
+      catalog_name: ${resources.catalogs.main-catalog.name}
+      schema_name: ${resources.schemas.main-schema.name}

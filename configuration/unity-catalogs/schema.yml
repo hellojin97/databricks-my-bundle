@@ -4,4 +4,4 @@ resources:
     main-schema:
       name: main
       comment: "Main schema for hj"
-      catalog_name: ${resources.catalogs.hj-krc-main.name}
+      catalog_name: ${resources.catalogs.main-catalog.name}
