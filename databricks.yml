@@ -18,7 +18,7 @@ artifacts:
 permissions:
   - service_principal_name: ${var.service_principal_name}
     level: CAN_MANAGE
-  - group_name: "Databricks_JIN_ADMIN"
+  - group_name: "DATAPLAY_MANAGER"
     level: CAN_MANAGE
 #  - group_name: "IN4U-Admin"
 #    level: CAN_MANAGE
