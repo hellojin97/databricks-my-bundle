@@ -20,6 +20,13 @@ resources:
         - principal: "account users"
           privileges:
             - USE_SCHEMA
+    data-schema:
+      catalog_name: ${resources.catalogs.home-catalog.name}
+      name: data
+      grants:
+        - principal: "account users"
+          privileges:
+            - USE_SCHEMA
   volumes:
     whl-volume:
       catalog_name: ${resources.catalogs.home-catalog.name}
@@ -30,3 +37,14 @@ resources:
         - principal: "account users"
           privileges:
             - READ_VOLUME
+
+    raw-volume:
+      catalog_name: ${resources.catalogs.home-catalog.name}
+      schema_name: ${resources.schemas.data-schema.name}
+      name: raws
+      volume_type: MANAGED
+      grants:
+        - principal: "account users"
+          privileges:
+            - READ_VOLUME
+            - READ_FILES

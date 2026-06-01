@@ -6,9 +6,6 @@ variables:
   cluster_id:
     default: ""
     description: "Cluster ID for deployment bundle jobs(Only for development mode)"
-  raw_output_dir:
-    default: "/Volumes/hj-krc-main/main/hj-main-volume/raw"
-    description: "generate-data 출력 경로(UC Volume). ADLS 등 다른 목적지로 바꾸려면 이 경로를 external volume 경로로 변경"
   period_start:
     default: "2025-05-11"
     description: "generate-data 분석 기간 시작 (YYYY-MM-DD)"
