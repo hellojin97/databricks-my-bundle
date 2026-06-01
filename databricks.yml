@@ -7,6 +7,14 @@ include:
   - ./configuration/*/*.yml
   - ./configuration/*.yml
 
+# ecommerce_generator 패키지를 wheel로 빌드 (deploy 시 `build` 명령 실행 후 업로드)
+artifacts:
+  ecommerce_wheel:
+    type: whl
+    build: uv build --wheel
+    path: .
+    dynamic_version: true
+
 permissions:
   - service_principal_name: ${var.service_principal_name}
     level: CAN_MANAGE

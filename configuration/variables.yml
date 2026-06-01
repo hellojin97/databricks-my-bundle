@@ -6,6 +6,9 @@ variables:
   cluster_id:
     default: ""
     description: "Cluster ID for deployment bundle jobs(Only for development mode)"
+  raw_output_dir:
+    default: "/tmp/ecommerce/raw"
+    description: "generate-data 출력 경로. 영속화하려면 Unity Catalog Volume 경로(예: /Volumes/<catalog>/<schema>/<volume>/raw)로 변경"
 
 targets:
   dev:

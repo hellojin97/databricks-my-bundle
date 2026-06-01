@@ -1,0 +1,24 @@
+# 데이터 생성 설정
+# 한 곳에서 모든 파라미터를 관리해서 재현성/실험 편하게
+
+seed: 42
+
+period:
+  start: "2025-05-11"
+  end: "2026-05-11"
+
+output_dir: "../../output/raw"
+
+volumes:
+  users: 100000
+  products: 10000
+  # 다음 phase에서 사용할 것 (참고용)
+  orders: 3000000
+  events: 30000000
+
+
+# 더러운 데이터 주입 비율 (실전 느낌)
+dirty_data:
+  null_rate_gender: 0.05  # 5% 유저는 성별 NULL
+  null_rate_brand: 0.02   # 2% 상품은 브랜드 NULL
+  discontinued_rate: 0.12 # 12% 상품 단종

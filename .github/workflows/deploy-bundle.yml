@@ -36,6 +36,7 @@ jobs:
     environment: dev
     steps:
       - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v6  # artifacts(ecommerce_wheel) 빌드용 `uv build`
       - uses: databricks/setup-cli@main
       - run: databricks current-user me
 
@@ -192,6 +193,7 @@ jobs:
     environment: prd
     steps:
       - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v6  # artifacts(ecommerce_wheel) 빌드용 `uv build`
       - uses: databricks/setup-cli@main
       - run: databricks current-user me
       - run: databricks bundle validate -t prd
