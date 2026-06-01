@@ -8,10 +8,10 @@ authors = [
 ]
 requires-python = ">=3.12,<3.13"
 # wheel 런타임 의존성 (Databricks 클러스터에 라이브러리로 설치됨)
+# numpy 하한은 DBR 내장본 재사용을 위해 낮게 유지. 파티션 쓰기는 polars 네이티브라 pyarrow 불필요.
 dependencies = [
-    "numpy>=2.4.4",
+    "numpy>=1.26",
     "polars>=1.40.1",
-    "pyarrow>=24.0.0",
     "pyyaml>=6.0.3",
 ]
 

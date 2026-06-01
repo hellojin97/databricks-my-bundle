@@ -44,11 +44,8 @@ def write_parquet(
     path.parent.mkdir(parents=True, exist_ok=True)
 
     if partition_by:
-        df.write_parquet(
-            path,
-            use_pyarrow=True,
-            pyarrow_options={"partition_cols": partition_by},
-        )
+        # polars 네이티브 hive 파티션 쓰기 (pyarrow 불필요)
+        df.write_parquet(path, partition_by=partition_by, mkdir=True)
     else:
         df.write_parquet(path)
 
