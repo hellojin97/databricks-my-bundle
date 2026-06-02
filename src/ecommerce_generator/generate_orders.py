@@ -57,6 +57,20 @@ COUNTRY_TO_CURRENCY = {
     "AU": "AUD", "IN": "INR",
 }
 
+# 고정 FX 환율 (1 USD 당 현지 통화). total_amount(USD)에 곱해 amount_local 산출.
+FX_RATES = {
+    "USD": 1.0,
+    "GBP": 0.79,
+    "EUR": 0.92,
+    "KRW": 1350.0,
+    "JPY": 150.0,
+    "AUD": 1.50,
+    "INR": 83.0,
+}
+
+# 소수점을 쓰지 않는 통화 (현지 금액을 정수로 반올림)
+ZERO_DECIMAL_CURRENCIES = {"KRW", "JPY"}
+
 
 def _compute_orders_per_user(
     users_df: pl.DataFrame,
@@ -311,7 +325,10 @@ def generate(
 
     currencies = _assign_currencies(order_user_ids, users_df)
 
-    # total_amount: 일단 placeholder (order_items 만든 후 업데이트 예정)
+    # 통화별 FX 환율 (현지 금액 환산용). amount_local은 order_items에서 total 확정 후 계산.
+    fx_rates = np.array([FX_RATES[c] for c in currencies], dtype=float)
+
+    # total_amount(USD): 일단 placeholder (order_items 만든 후 업데이트 예정)
     # 대략 $20 ~ $500 사이 log-uniform
     total_amounts = np.round(
         np.exp(rng.uniform(np.log(20), np.log(500), size=n_total)),
@@ -328,7 +345,8 @@ def generate(
         "status": statuses.tolist(),
         "payment_method": payment_methods.tolist(),
         "currency": currencies.tolist(),
-        "total_amount": total_amounts,
+        "fx_rate": fx_rates,
+        "total_amount": total_amounts,  # USD 기준
         "dt": order_dts,
     })
 

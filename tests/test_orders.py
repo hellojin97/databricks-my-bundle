@@ -5,7 +5,7 @@ from .conftest import END_DATE
 
 EXPECTED_COLUMNS = {
     "order_id", "user_id", "created_at", "status",
-    "payment_method", "currency", "total_amount", "dt",
+    "payment_method", "currency", "fx_rate", "total_amount", "dt",
 }
 VALID_STATUSES = {
     "pending", "processing", "shipped", "delivered", "cancelled", "refunded",
