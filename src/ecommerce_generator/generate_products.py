@@ -16,7 +16,6 @@ import polars as pl
 
 from .base import inject_nulls, make_rng
 
-
 # L1 카테고리별 브랜드 풀
 BRANDS_BY_L1 = {
     "Electronics": [
@@ -108,7 +107,7 @@ def generate(
     names = [
         f"{b} {a} {c} {mp} {mn}"
         for b, a, c, mp, mn in zip(
-            brands, adj_choices, chosen_cat_names, model_prefixes, model_numbers
+            brands, adj_choices, chosen_cat_names, model_prefixes, model_numbers, strict=False
         )
     ]
 
@@ -132,7 +131,7 @@ def generate(
     # 단종 여부
     is_discontinued = rng.random(n_products) < discontinued_rate
     discontinued_at: list = []
-    for i, (ca, disc) in enumerate(zip(created_at, is_discontinued)):
+    for ca, disc in zip(created_at, is_discontinued, strict=False):
         if disc:
             # 생성 후 30일 이후 ~ end_date 사이에 단종
             max_offset = max(31, (end_date - ca.date()).days)
@@ -144,7 +143,7 @@ def generate(
     # SKU 코드
     skus = [
         f"{str(b)[:3].upper()}-{pid:08d}"
-        for b, pid in zip(brands, product_ids)
+        for b, pid in zip(brands, product_ids, strict=False)
     ]
 
     # 브랜드 NULL 일부 (dirty data)

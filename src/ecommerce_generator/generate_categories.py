@@ -4,8 +4,8 @@
 parent_id로 self-join, depth로 필터링 연습 가능.
 """
 import polars as pl
-from .base import make_rng
 
+from .base import make_rng
 
 # 카테고리 트리
 CATEGORY_TREE = {

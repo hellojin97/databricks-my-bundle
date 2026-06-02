@@ -23,8 +23,24 @@ generate-data = "ecommerce_generator.main:main"
 [dependency-groups]
 dev = [
     "ruff>=0.15.14",
+    "pytest>=8.0",
 ]
 
 [build-system]
 requires = ["uv_build>=0.7.19,<0.8.0"]
 build-backend = "uv_build"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+# E/F: pyflakes+pycodestyle, I: import 정렬, UP: pyupgrade, B: bugbear
+select = ["E", "F", "I", "UP", "B"]
+# E501(라인 길이)은 데이터 풀 정의(긴 리스트)가 많아 완화
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

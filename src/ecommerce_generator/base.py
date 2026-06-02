@@ -7,11 +7,11 @@
 - 가중 랜덤 선택
 """
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 import polars as pl
 import yaml
+
 
 def load_config(path: str | Path | None = None) -> dict:
     """YAML 설정 파일 로드.
@@ -33,7 +33,7 @@ def make_rng(seed: int) -> np.random.Generator:
 def write_parquet(
     df: pl.DataFrame,
     path: str | Path,
-    partition_by: Optional[list[str]] = None,
+    partition_by: list[str] | None = None,
 ) -> None:
     """DataFrame을 Parquet으로 저장, 선택적으로 파티셔닝.
     

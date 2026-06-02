@@ -9,13 +9,11 @@ orders에 의존 (FK: order_id), products에 의존 (FK: product_id).
 - cancelled/refunded 주문도 라인 그대로 (status만 다름)
 - 부수효과: orders.total_amount 업데이트
 """
-from typing import Tuple
 
 import numpy as np
 import polars as pl
 
 from .base import make_rng
-
 
 # 주문당 라인 수 분포 (1~5)
 ITEMS_PER_ORDER_PROBS = np.array([0.50, 0.25, 0.15, 0.07, 0.03])
@@ -33,7 +31,7 @@ def generate(
     orders_df: pl.DataFrame,
     products_df: pl.DataFrame,
     seed: int = 42,
-) -> Tuple[pl.DataFrame, pl.DataFrame]:
+) -> tuple[pl.DataFrame, pl.DataFrame]:
     """order_items 생성 + orders의 total_amount 업데이트.
 
     Args:
