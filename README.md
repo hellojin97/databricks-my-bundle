@@ -1,4 +1,4 @@
-# databricks-my-bundle
+# ecommerce-data-generator
 
 > 가짜 이커머스(온라인 쇼핑몰) 데이터를 자동으로 만들어서 Databricks에 올려주는 프로젝트입니다.
 
@@ -69,7 +69,7 @@ flowchart LR
 ## 폴더 구조 (어디에 뭐가 있나요?)
 
 ```
-databricks-my-bundle/
+ecommerce-data-generator/
 │
 ├── databricks.yml             ← 프로젝트 전체 설정 (가장 중요한 설계도)
 │
