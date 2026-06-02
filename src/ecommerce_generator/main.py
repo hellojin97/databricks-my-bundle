@@ -12,6 +12,7 @@
                   --users 10000 --products 500 --null-rate-gender 0.1
 
 seed 및 선택 인자의 기본값은 config.yml에서 읽는다 (--config로 교체 가능).
+seed는 --seed로 실행마다 오버라이드할 수 있다 (다른 데이터셋 생성용).
 
 Phase 1: 차원 테이블 (categories, users, products)
 Phase 2: 팩트 테이블 (orders, order_items)
@@ -46,6 +47,9 @@ def main(argv: list[str] | None = None) -> None:
     )
     # 선택 인자 — 미지정 시 config.yml 값 사용
     parser.add_argument(
+        "--seed", type=int, default=None, help="RNG seed (기본: config seed). 같은 코드로 다른 데이터셋 생성 시 사용"
+    )
+    parser.add_argument(
         "--users", type=int, default=None, help="유저 수 (기본: config volumes.users)"
     )
     parser.add_argument(
@@ -69,7 +73,7 @@ def main(argv: list[str] | None = None) -> None:
 
     start_date = date.fromisoformat(args.start_date)
     end_date = date.fromisoformat(args.end_date)
-    seed = cfg["seed"]
+    seed = args.seed if args.seed is not None else cfg["seed"]
     output_dir = Path(args.output_volume)
     output_dir.mkdir(parents=True, exist_ok=True)
 

@@ -7,9 +7,6 @@ seed: 42
 volumes:
   users: 100000
   products: 10000
-  # 다음 phase에서 사용할 것 (참고용)
-  orders: 3000000
-  events: 30000000
 
 
 # 더러운 데이터 주입 비율 (실전 느낌)
