@@ -9,6 +9,7 @@ import pytest
 
 from ecommerce_generator import (
     generate_categories,
+    generate_events,
     generate_order_items,
     generate_orders,
     generate_products,
@@ -23,6 +24,9 @@ N_PRODUCTS = 1000
 NULL_RATE_GENDER = 0.05
 NULL_RATE_BRAND = 0.02
 DISCONTINUED_RATE = 0.12
+BROWSE_SESSIONS_PER_USER = 3
+MAX_EVENTS_PER_SESSION = 8
+NULL_RATE_SEARCH = 0.10
 
 
 @pytest.fixture(scope="session")
@@ -66,3 +70,20 @@ def order_items_and_orders(orders, products):
         orders_df=orders, products_df=products, seed=SEED
     )
     return items, updated_orders
+
+
+@pytest.fixture(scope="session")
+def events(users, products, order_items_and_orders):
+    """클릭스트림 events. order_items로 갱신된 orders(업데이트본)를 전달한다."""
+    items, updated_orders = order_items_and_orders
+    return generate_events.generate(
+        users_df=users,
+        products_df=products,
+        orders_df=updated_orders,
+        order_items_df=items,
+        end_date=END_DATE,
+        seed=SEED,
+        browse_sessions_per_user=BROWSE_SESSIONS_PER_USER,
+        max_events_per_session=MAX_EVENTS_PER_SESSION,
+        null_rate_search=NULL_RATE_SEARCH,
+    )
