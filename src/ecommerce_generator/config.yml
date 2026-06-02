@@ -9,8 +9,16 @@ volumes:
   products: 10000
 
 
+# events(클릭스트림) 생성 규모 (단일노드 안전선; CLI로 상향 가능)
+# 주문이 이미 ~300만이라 기본값에선 전환율이 현실치(2~5%)보다 높게 나온다.
+events:
+  browse_sessions_per_user: 3   # 유저당 평균 브라우징 세션 수 (Poisson, vip 가중)
+  max_events_per_session: 8     # 브라우징 세션당 이벤트 상한
+
+
 # 더러운 데이터 주입 비율 (실전 느낌)
 dirty_data:
   null_rate_gender: 0.05  # 5% 유저는 성별 NULL
   null_rate_brand: 0.02   # 2% 상품은 브랜드 NULL
   discontinued_rate: 0.12 # 12% 상품 단종
+  null_rate_search: 0.10  # 10% search 이벤트는 search_query NULL

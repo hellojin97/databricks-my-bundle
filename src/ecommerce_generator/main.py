@@ -15,7 +15,7 @@ seed 및 선택 인자의 기본값은 config.yml에서 읽는다 (--config로 �
 seed는 --seed로 실행마다 오버라이드할 수 있다 (다른 데이터셋 생성용).
 
 Phase 1: 차원 테이블 (categories, users, products)
-Phase 2: 팩트 테이블 (orders, order_items)
+Phase 2: 팩트 테이블 (orders, order_items, events)
 """
 import argparse
 import time
@@ -24,6 +24,7 @@ from pathlib import Path
 
 from . import (
     generate_categories,
+    generate_events,
     generate_order_items,
     generate_orders,
     generate_products,
@@ -67,6 +68,18 @@ def main(argv: list[str] | None = None) -> None:
         "--discontinued-rate", type=float, default=None,
         help="상품 단종 비율 (기본: config dirty_data.discontinued_rate)",
     )
+    parser.add_argument(
+        "--browse-sessions-per-user", type=float, default=None,
+        help="유저당 평균 브라우징 세션 수 (기본: config events.browse_sessions_per_user)",
+    )
+    parser.add_argument(
+        "--max-events-per-session", type=int, default=None,
+        help="브라우징 세션당 이벤트 상한 (기본: config events.max_events_per_session)",
+    )
+    parser.add_argument(
+        "--null-rate-search", type=float, default=None,
+        help="search_query NULL 비율 (기본: config dirty_data.null_rate_search)",
+    )
     args = parser.parse_args(argv)
 
     cfg = load_config(args.config)
@@ -94,6 +107,21 @@ def main(argv: list[str] | None = None) -> None:
         args.discontinued_rate
         if args.discontinued_rate is not None
         else cfg["dirty_data"]["discontinued_rate"]
+    )
+    browse_sessions_per_user = (
+        args.browse_sessions_per_user
+        if args.browse_sessions_per_user is not None
+        else cfg["events"]["browse_sessions_per_user"]
+    )
+    max_events_per_session = (
+        args.max_events_per_session
+        if args.max_events_per_session is not None
+        else cfg["events"]["max_events_per_session"]
+    )
+    null_rate_search = (
+        args.null_rate_search
+        if args.null_rate_search is not None
+        else cfg["dirty_data"]["null_rate_search"]
     )
 
     print("=" * 64)
@@ -142,11 +170,11 @@ def main(argv: list[str] | None = None) -> None:
 
     print("\n" + "=" * 64)
     print(f"Phase 1 done in {time.time() - total_t0:.2f}s")
-    print("Next: orders + order_items + payments + shipments + events")
+    print("Next: orders + order_items + events; later: payments + shipments")
     print("=" * 64)
 
     # 4. Orders (users에 의존, 가장 큰 팩트 테이블)
-    print("\n[4/4] Orders")
+    print("\n[4/6] Orders")
     t0 = time.time()
     orders = generate_orders.generate(
         users_df=users,
@@ -156,7 +184,7 @@ def main(argv: list[str] | None = None) -> None:
     print(f"    elapsed: {time.time() - t0:.2f}s")
 
     # 5. Order Items (orders, products에 의존, orders도 업데이트)
-    print("\n[5/5] Order Items + Update Orders")
+    print("\n[5/6] Order Items + Update Orders")
     t0 = time.time()
     order_items, orders = generate_order_items.generate(
         orders_df=orders,
@@ -165,10 +193,27 @@ def main(argv: list[str] | None = None) -> None:
     )
     print(f"    elapsed: {time.time() - t0:.2f}s")
 
-    # 이제 두 팩트 테이블 저장 (둘 다 dt 파티션)
+    # 6. Events (users/products/orders/order_items에 의존, 클릭스트림)
+    print("\n[6/6] Events")
+    t0 = time.time()
+    events = generate_events.generate(
+        users_df=users,
+        products_df=products,
+        orders_df=orders,
+        order_items_df=order_items,
+        end_date=end_date,
+        seed=seed,
+        browse_sessions_per_user=browse_sessions_per_user,
+        max_events_per_session=max_events_per_session,
+        null_rate_search=null_rate_search,
+    )
+    print(f"    elapsed: {time.time() - t0:.2f}s")
+
+    # 이제 세 팩트 테이블 저장 (모두 dt 파티션)
     print("\nWriting partitioned facts...")
     write_parquet(orders, output_dir / "orders", partition_by=["dt"])
     write_parquet(order_items, output_dir / "order_items", partition_by=["dt"])
+    write_parquet(events, output_dir / "events", partition_by=["dt"])
 
 
 if __name__ == "__main__":
