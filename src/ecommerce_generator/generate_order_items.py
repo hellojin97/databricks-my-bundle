@@ -188,7 +188,6 @@ def generate(
 
     updated_orders_df = (
         orders_df
-        .drop("total_amount")   # placeholder 제거
         .join(real_totals, on="order_id")
         .rename({"total_amount_real": "total_amount"})
     )

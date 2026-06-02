@@ -265,19 +265,22 @@ def _assign_currencies(
     order_user_ids: np.ndarray,
     users_df: pl.DataFrame,
 ) -> np.ndarray:
-    """유저의 country를 기반으로 통화 결정."""
-    # user_id → country lookup
-    user_country = dict(
-        zip(
-            users_df["user_id"].to_list(),
-            users_df["country"].to_list(), strict=False,
-        )
+    """유저의 country를 기반으로 통화 결정 (polars join 벡터화).
+
+    유저별 통화를 먼저 구한 뒤, 주문(order_user_ids) 순서를 유지하며 left join 한다.
+    Python 루프 대신 polars 네이티브 연산이라 수백만 주문에서도 빠르다.
+    """
+    user_currency = users_df.select(
+        "user_id",
+        pl.col("country")
+        .replace_strict(COUNTRY_TO_CURRENCY, default="USD")
+        .alias("currency"),
     )
-    # 주문별 country
-    countries = np.array([user_country[uid] for uid in order_user_ids])
-    # country → currency
-    currencies = np.array([COUNTRY_TO_CURRENCY.get(c, "USD") for c in countries])
-    return currencies
+    return (
+        pl.DataFrame({"user_id": order_user_ids})
+        .join(user_currency, on="user_id", how="left", maintain_order="left")["currency"]
+        .to_numpy()
+    )
 
 
 def generate(
@@ -328,16 +331,10 @@ def generate(
     # 통화별 FX 환율 (현지 금액 환산용). amount_local은 order_items에서 total 확정 후 계산.
     fx_rates = np.array([FX_RATES[c] for c in currencies], dtype=float)
 
-    # total_amount(USD): 일단 placeholder (order_items 만든 후 업데이트 예정)
-    # 대략 $20 ~ $500 사이 log-uniform
-    total_amounts = np.round(
-        np.exp(rng.uniform(np.log(20), np.log(500), size=n_total)),
-        2,
-    )
-
     # 파티션 키 (dt = created_at의 날짜)
     order_dts = order_timestamps.astype("datetime64[D]")
 
+    # total_amount/amount_local은 order_items에서 라인 합계 확정 후 추가된다.
     df = pl.DataFrame({
         "order_id": order_ids,
         "user_id": order_user_ids,
@@ -346,7 +343,6 @@ def generate(
         "payment_method": payment_methods.tolist(),
         "currency": currencies.tolist(),
         "fx_rate": fx_rates,
-        "total_amount": total_amounts,  # USD 기준
         "dt": order_dts,
     })
 
