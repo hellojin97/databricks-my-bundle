@@ -13,7 +13,6 @@ import polars as pl
 
 from .base import make_rng, weighted_choice
 
-
 # 세그먼트별 월 평균 주문 수
 # 합계가 3M에 맞도록 조정 (100K 유저 기준)
 MONTHLY_ORDER_RATE = {
@@ -257,7 +256,7 @@ def _assign_currencies(
     user_country = dict(
         zip(
             users_df["user_id"].to_list(),
-            users_df["country"].to_list(),
+            users_df["country"].to_list(), strict=False,
         )
     )
     # 주문별 country

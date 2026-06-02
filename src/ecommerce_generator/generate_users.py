@@ -101,7 +101,7 @@ def generate(
     )
     emails = [
         f"{f.lower()}.{last.lower()}{i}@{p}"
-        for f, last, i, p in zip(first_names_arr, last_names, user_ids, providers)
+        for f, last, i, p in zip(first_names_arr, last_names, user_ids, providers, strict=False)
     ]
 
     # 가입일: beta(2, 1.5) - 최근으로 갈수록 가입자 증가 (성장하는 서비스)
@@ -112,7 +112,7 @@ def generate(
     start_dt = datetime.combine(start_date, datetime.min.time())
     created_at = [
         start_dt + timedelta(days=int(d), seconds=int(s))
-        for d, s in zip(signup_day_offsets, signup_seconds_in_day)
+        for d, s in zip(signup_day_offsets, signup_seconds_in_day, strict=False)
     ]
 
     # 국가
@@ -138,7 +138,7 @@ def generate(
     birth_days = rng.integers(1, 28, size=n_users) # 28일 max로 안전하게
     birth_dates = [
         date(int(y), int(m), int(d))
-        for y, m, d in zip(birth_years, birth_months, birth_days)
+        for y, m, d in zip(birth_years, birth_months, birth_days, strict=False)
     ]
 
     # is_actives: churned면 무조건 False, 나머지는 95% 활성
