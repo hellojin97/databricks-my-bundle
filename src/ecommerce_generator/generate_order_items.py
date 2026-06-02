@@ -98,14 +98,16 @@ def generate(
     # --- 3. 상품 선택 (인기도 Pareto + 시간적 정합성) ---
     product_ids = products_df["product_id"].to_numpy()
     base_prices = products_df["base_price"].to_numpy()
-    product_created = products_df["created_at"].to_numpy().astype("datetime64[ns]")
+    # 단위는 us 고정 (orders/products created_at과 동일). ns는 1678~2262만 표현
+    # 가능해 _FAR_FUTURE(2999)가 오버플로우되므로 절대 쓰면 안 된다.
+    product_created = products_df["created_at"].to_numpy().astype("datetime64[us]")
     # 미단종 상품은 먼 미래값으로 채워, "주문일 ≤ discontinued_at" 비교를 단순화
     product_disc = (
-        products_df["discontinued_at"].fill_null(_FAR_FUTURE).to_numpy().astype("datetime64[ns]")
+        products_df["discontinued_at"].fill_null(_FAR_FUTURE).to_numpy().astype("datetime64[us]")
     )
     is_active = products_df["discontinued_at"].is_null().to_numpy()
 
-    line_created = line_created_at.astype("datetime64[ns]")
+    line_created = line_created_at.astype("datetime64[us]")
 
     # 상품별 인기도 가중치
     product_weights = rng.pareto(1.5, size=len(product_ids)) + 0.5

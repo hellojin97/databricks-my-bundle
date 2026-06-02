@@ -1,7 +1,23 @@
 """현실성(시간적 정합성 + 통화/금액) 검증."""
+import numpy as np
 import polars as pl
 
+from ecommerce_generator.generate_order_items import _FAR_FUTURE
 from ecommerce_generator.generate_orders import FX_RATES, ZERO_DECIMAL_CURRENCIES
+
+
+def test_far_future_sentinel_does_not_overflow():
+    """미단종 센티넬(_FAR_FUTURE)이 us 캐스팅 후에도 '먼 미래'를 유지해야 한다.
+
+    datetime64[ns]는 ~2262까지만 표현 가능해 2999가 과거로 래핑된다.
+    그 경우 활성 상품이 '단종됨'으로 오분류되므로, 이 회귀 테스트로 고정한다.
+    """
+    sentinel_us = (
+        pl.Series([_FAR_FUTURE], dtype=pl.Datetime("us"))
+        .to_numpy()
+        .astype("datetime64[us]")[0]
+    )
+    assert sentinel_us > np.datetime64("2100-01-01")
 
 
 def test_order_items_reference_existing_products(order_items_and_orders, products, orders):
