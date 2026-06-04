@@ -130,6 +130,10 @@ jobs:
           PLAN_SUMMARY: ${{ steps.plan_before.outputs.summary }}
           PLAN_RESOURCES: ${{ steps.plan_before.outputs.resources }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          REPO: ${{ github.repository }}
+          REF: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          RUN_NUMBER: ${{ github.run_number }}
         run: |
           case "$DRIFT" in
             true)  DRIFT_TEXT="⚠️ 감지됨 — 직후 plan이 0 changes 아님" ;;
@@ -160,13 +164,17 @@ jobs:
             TITLE="❓ Bundle deploy - unknown status (dev)"; COLOR="#7f8c8d"
           fi
 
+          # 레포명을 맨 위에 넣어, 하나의 webhook을 여러 repo가 공유해도 출처를 구분
+          HEAD="*${REPO}*${NL}${TITLE}"
           # Slack mrkdwn (한 줄로 합치고 jq가 개행/특수문자를 안전하게 JSON 인코딩)
           TEXT="*환경*: \`dev\`${NL}${CHANGES_SECTION}${NL}*Drift*: ${DRIFT_TEXT}${NL}<${RUN_URL}|Job 로그> · <${DATABRICKS_HOST}|Databricks workspace>"
+          CTX="브랜치 \`${REF}\` · 실행자 ${ACTOR} · run #${RUN_NUMBER}"
 
-          jq -n --arg color "$COLOR" --arg title "$TITLE" --arg text "$TEXT" \
+          jq -n --arg color "$COLOR" --arg head "$HEAD" --arg text "$TEXT" --arg ctx "$CTX" \
             '{attachments:[{color:$color,blocks:[
-               {type:"section",text:{type:"mrkdwn",text:$title}},
-               {type:"section",text:{type:"mrkdwn",text:$text}}
+               {type:"section",text:{type:"mrkdwn",text:$head}},
+               {type:"section",text:{type:"mrkdwn",text:$text}},
+               {type:"context",elements:[{type:"mrkdwn",text:$ctx}]}
              ]}]}' > slack_payload.json
 
       - name: Notify Slack
