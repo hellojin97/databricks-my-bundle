@@ -8,7 +8,8 @@ orders에 1:1로 의존 (FK: order_id). 주문 1건당 결제 1행.
     pending                      → authorized
     cancelled                    → failed
     refunded                     → refunded
-- 금액/수단/통화는 order 값을 그대로 쓴다.
+- 금액은 고객이 실제 청구받은 현지통화 금액(order.amount_local)을 쓰고,
+  통화 코드(order.currency)와 일관되게 맞춘다. 수단도 order 값을 그대로 쓴다.
 - paid_at은 주문 직후(수초~수분), refunded_at은 환불 건에만 채운다.
 """
 from datetime import date
@@ -58,7 +59,7 @@ def generate(
     order_created = orders_df["created_at"].to_numpy().astype("datetime64[us]")
     statuses = orders_df["status"].to_numpy()
     methods = orders_df["payment_method"].to_numpy()
-    amounts = orders_df["total_amount"].to_numpy()
+    amounts = orders_df["amount_local"].to_numpy()
     currencies = orders_df["currency"].to_numpy()
 
     # status 매핑 (벡터화)
