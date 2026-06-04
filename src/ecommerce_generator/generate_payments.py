@@ -76,12 +76,10 @@ def generate(
     remaining_secs = (
         (end_ts - order_created).astype("timedelta64[s]").astype(np.int64)
     )
-    paid_max_secs = np.clip(remaining_secs, _PAID_MIN_S, _PAID_MAX_S)
-    paid_offset = np.array([
-        rng.integers(_PAID_MIN_S, max_s + 1) if max_s >= _PAID_MIN_S else max_s
-        for max_s in paid_max_secs
-    ])
-    paid_at = order_created + paid_offset.astype("timedelta64[s]")
+    # rng.integers는 배열 상한을 받으므로 행별 상한으로 한 번에 벡터화 (Python 루프 제거)
+    paid_high = np.clip(remaining_secs, _PAID_MIN_S, _PAID_MAX_S) + 1  # exclusive 상한
+    paid_offset = rng.integers(_PAID_MIN_S, paid_high)
+    paid_at = np.minimum(order_created + paid_offset.astype("timedelta64[s]"), end_ts)
 
     # refunded_at: 환불 건에만 (그 외 NaT → polars null)
     refunded_at = np.full(n, np.datetime64("NaT"), dtype="datetime64[us]")
@@ -92,15 +90,13 @@ def generate(
         remaining_after_paid = (
             (end_ts - paid_ref).astype("timedelta64[s]").astype(np.int64)
         )
-        refund_max_secs = np.clip(
+        refund_high = np.clip(
             remaining_after_paid, _REFUND_MIN_D * 86400, _REFUND_MAX_D * 86400
+        ) + 1
+        ref_secs = rng.integers(_REFUND_MIN_D * 86400, refund_high)
+        refunded_at[is_refunded] = np.minimum(
+            paid_ref + ref_secs.astype("timedelta64[s]"), end_ts
         )
-        ref_secs = np.array([
-            rng.integers(_REFUND_MIN_D * 86400, max_s + 1)
-            if max_s >= _REFUND_MIN_D * 86400 else max_s
-            for max_s in refund_max_secs
-        ])
-        refunded_at[is_refunded] = paid_ref + ref_secs.astype("timedelta64[s]")
 
     df = pl.DataFrame({
         "payment_id": np.arange(1, n + 1, dtype=np.int64),
