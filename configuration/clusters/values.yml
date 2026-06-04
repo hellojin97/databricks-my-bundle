@@ -10,7 +10,7 @@ resources:
       spark_version: 16.4.x-scala2.13
       node_type_id: Standard_F4s_v2
       driver_node_type_id: Standard_F4s_v2
-      autotermination_minutes: 15
+      autotermination_minutes: 60
       data_security_mode: SINGLE_USER
       single_user_name: "DATAPLAY_MANAGER"
       runtime_engine: STANDARD
@@ -26,6 +26,33 @@ resources:
       permissions:
         - group_name: "DATAPLAY_MANAGER"
           level: CAN_MANAGE
+
+    user_cluster_apcmp:
+      cluster_name: main_cluster_apcmp
+      kind: CLASSIC_PREVIEW
+      is_single_node: true
+      num_workers: 0
+      spark_version: 16.4.x-scala2.13
+      node_type_id: Standard_F4s_v2
+      driver_node_type_id: Standard_F4s_v2
+      autotermination_minutes: 60
+      data_security_mode: SINGLE_USER
+      single_user_name: "DATAPLAY_USER"
+      runtime_engine: STANDARD
+      azure_attributes:
+        availability: SPOT_WITH_FALLBACK_AZURE
+      enable_elastic_disk: true
+      spark_conf:
+        PYSPARK_PYTHON: /databricks/python3/bin/python3
+        "spark.databricks.cluster.profile": "singleNode"
+        "spark.master": "local[*, 4]"
+      custom_tags:
+        "ResourceClass": "SingleNode"
+      permissions:
+        - group_name: "DATAPLAY_MANAGER"
+          level: CAN_MANAGE
+        - group_name: "DATAPLAY_USER"
+          level: CAN_RESTART
 
     # Multi Node Cluster
 #    main_cluster_apcmp_multi:
