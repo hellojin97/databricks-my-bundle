@@ -122,72 +122,60 @@ jobs:
           fi
           exit $EXIT
 
-      - name: Compute notification fields
+      - name: Build Slack payload
         if: always()
-        id: notify
         env:
           JOB_STATUS: ${{ job.status }}
           DRIFT: ${{ steps.drift.outputs.detected }}
           PLAN_SUMMARY: ${{ steps.plan_before.outputs.summary }}
           PLAN_RESOURCES: ${{ steps.plan_before.outputs.resources }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           case "$DRIFT" in
             true)  DRIFT_TEXT="⚠️ 감지됨 — 직후 plan이 0 changes 아님" ;;
             false) DRIFT_TEXT="없음" ;;
             *)     DRIFT_TEXT="— (확인 안 됨)" ;;
           esac
-          echo "drift_text=$DRIFT_TEXT" >> "$GITHUB_OUTPUT"
 
           NL=$'\n'
           if [ -z "$PLAN_SUMMARY" ]; then
-            CHANGES_SECTION="- **변경**: — (확인 안 됨)"
+            CHANGES_SECTION="*변경*: — (확인 안 됨)"
           elif echo "$PLAN_SUMMARY" | grep -qE "^0 to add, 0 to change, 0 to delete$"; then
-            CHANGES_SECTION="- **변경**: 없음"
+            CHANGES_SECTION="*변경*: 없음"
           elif [ -n "$PLAN_RESOURCES" ]; then
-            CHANGES_SECTION="- **변경**: ${PLAN_SUMMARY}${NL}${PLAN_RESOURCES}"
+            CHANGES_SECTION="*변경*: ${PLAN_SUMMARY}${NL}${PLAN_RESOURCES}"
           else
-            CHANGES_SECTION="- **변경**: $PLAN_SUMMARY"
+            CHANGES_SECTION="*변경*: $PLAN_SUMMARY"
           fi
-          {
-            echo "changes_section<<CS_EOF"
-            echo "$CHANGES_SECTION"
-            echo "CS_EOF"
-          } >> "$GITHUB_OUTPUT"
 
           if [ "$JOB_STATUS" = "success" ] && [ "$DRIFT" = "true" ]; then
-            echo "title=🟠 Bundle deploy succeeded, drift detected (dev)" >> "$GITHUB_OUTPUT"
-            echo "color=0xff9900" >> "$GITHUB_OUTPUT"
+            TITLE="🟠 Bundle deploy succeeded, drift detected (dev)"; COLOR="#ff9900"
           elif [ "$JOB_STATUS" = "success" ]; then
-            echo "title=🟢 Bundle deploy succeeded (dev)" >> "$GITHUB_OUTPUT"
-            echo "color=0x2ecc71" >> "$GITHUB_OUTPUT"
+            TITLE="🟢 Bundle deploy succeeded (dev)"; COLOR="#2ecc71"
           elif [ "$JOB_STATUS" = "failure" ]; then
-            echo "title=🔴 Bundle deploy failed (dev)" >> "$GITHUB_OUTPUT"
-            echo "color=0xe74c3c" >> "$GITHUB_OUTPUT"
+            TITLE="🔴 Bundle deploy failed (dev)"; COLOR="#e74c3c"
           elif [ "$JOB_STATUS" = "cancelled" ]; then
-            echo "title=⚪ Bundle deploy cancelled (dev)" >> "$GITHUB_OUTPUT"
-            echo "color=0x95a5a6" >> "$GITHUB_OUTPUT"
+            TITLE="⚪ Bundle deploy cancelled (dev)"; COLOR="#95a5a6"
           else
-            echo "title=❓ Bundle deploy - unknown status (dev)" >> "$GITHUB_OUTPUT"
-            echo "color=0x7f8c8d" >> "$GITHUB_OUTPUT"
+            TITLE="❓ Bundle deploy - unknown status (dev)"; COLOR="#7f8c8d"
           fi
 
-      - name: Notify Discord
-        if: always()
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK }}
-          status: ${{ job.status }}
-          noprefix: true
-          title: ${{ steps.notify.outputs.title }}
-          color: ${{ steps.notify.outputs.color }}
-          url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          description: |
-            - **환경**: `dev`
-            ${{ steps.notify.outputs.changes_section }}
-            - **Drift**: ${{ steps.notify.outputs.drift_text }}
-            - **로그**: [Job Summary](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) 참고
+          # Slack mrkdwn (한 줄로 합치고 jq가 개행/특수문자를 안전하게 JSON 인코딩)
+          TEXT="*환경*: \`dev\`${NL}${CHANGES_SECTION}${NL}*Drift*: ${DRIFT_TEXT}${NL}<${RUN_URL}|Job 로그> · <${DATABRICKS_HOST}|Databricks workspace>"
 
-            🔗 [Databricks workspace](${{ env.DATABRICKS_HOST }})
+          jq -n --arg color "$COLOR" --arg title "$TITLE" --arg text "$TEXT" \
+            '{attachments:[{color:$color,blocks:[
+               {type:"section",text:{type:"mrkdwn",text:$title}},
+               {type:"section",text:{type:"mrkdwn",text:$text}}
+             ]}]}' > slack_payload.json
+
+      - name: Notify Slack
+        if: always()
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK }}
+          webhook-type: incoming-webhook
+          payload-file-path: slack_payload.json
 
   deploy_prd:
     if: startsWith(github.ref, 'refs/tags/v')
