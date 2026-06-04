@@ -23,6 +23,7 @@ on:
 permissions:
   id-token: write
   contents: read
+  pull-requests: read
 
 env:
   DATABRICKS_AUTH_TYPE: github-oidc
@@ -122,7 +123,7 @@ jobs:
           fi
           exit $EXIT
 
-      - name: Build Slack payload
+      - name: Build Slack messages
         if: always()
         env:
           JOB_STATUS: ${{ job.status }}
@@ -134,6 +135,11 @@ jobs:
           REF: ${{ github.ref_name }}
           ACTOR: ${{ github.actor }}
           RUN_NUMBER: ${{ github.run_number }}
+          CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          COMMIT_SHA: ${{ github.sha }}
+          SERVER_URL: ${{ github.server_url }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           case "$DRIFT" in
             true)  DRIFT_TEXT="⚠️ 감지됨 — 직후 plan이 0 changes 아님" ;;
@@ -164,26 +170,70 @@ jobs:
             TITLE="❓ Bundle deploy - unknown status (dev)"; COLOR="#7f8c8d"
           fi
 
-          # 레포명을 맨 위에 넣어, 하나의 webhook을 여러 repo가 공유해도 출처를 구분
+          # 레포명을 맨 위에 넣어, 하나의 토큰을 여러 repo가 공유해도 출처를 구분
           HEAD="*${REPO}*${NL}${TITLE}"
-          # Slack mrkdwn (한 줄로 합치고 jq가 개행/특수문자를 안전하게 JSON 인코딩)
           TEXT="*환경*: \`dev\`${NL}${CHANGES_SECTION}${NL}*Drift*: ${DRIFT_TEXT}${NL}<${RUN_URL}|Job 로그> · <${DATABRICKS_HOST}|Databricks workspace>"
           CTX="브랜치 \`${REF}\` · 실행자 ${ACTOR} · run #${RUN_NUMBER}"
 
-          jq -n --arg color "$COLOR" --arg head "$HEAD" --arg text "$TEXT" --arg ctx "$CTX" \
-            '{attachments:[{color:$color,blocks:[
+          # 메인 메시지 (chat.postMessage용; channel 포함)
+          jq -n --arg ch "$CHANNEL_ID" --arg color "$COLOR" --arg head "$HEAD" \
+                --arg text "$TEXT" --arg ctx "$CTX" --arg fb "$TITLE" \
+            '{channel:$ch, text:$fb, attachments:[{color:$color,blocks:[
                {type:"section",text:{type:"mrkdwn",text:$head}},
                {type:"section",text:{type:"mrkdwn",text:$text}},
                {type:"context",elements:[{type:"mrkdwn",text:$ctx}]}
-             ]}]}' > slack_payload.json
+             ]}]}' > slack_main.json
 
-      - name: Notify Slack
+          # 스레드 본문: main 머지 PR이면 그 PR 내용, 아니면 push 커밋 메시지
+          PR_NUMBER=$(printf '%s' "$COMMIT_MSG" | grep -oE 'Merge pull request #[0-9]+' | grep -oE '[0-9]+' | head -1 || true)
+          if [ -n "$PR_NUMBER" ]; then
+            PR_JSON=$(curl -sS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${REPO}/pulls/${PR_NUMBER}" || echo '{}')
+            PR_TITLE=$(printf '%s' "$PR_JSON" | jq -r '.title // ""')
+            PR_BODY=$(printf '%s' "$PR_JSON" | jq -r '.body // ""')
+            THREAD_HEAD="📦 *머지된 PR* <${SERVER_URL}/${REPO}/pull/${PR_NUMBER}|#${PR_NUMBER}: ${PR_TITLE}>"
+            THREAD_BODY="$PR_BODY"
+          else
+            SHORT_SHA=$(printf '%s' "$COMMIT_SHA" | cut -c1-7)
+            THREAD_HEAD="📝 *커밋* \`${SHORT_SHA}\` by ${ACTOR}"
+            THREAD_BODY="$COMMIT_MSG"
+            [ -z "$THREAD_BODY" ] && THREAD_BODY="(커밋 메시지 없음 — 수동 실행)"
+          fi
+
+          # 본문은 jq에서 UTF-8 안전하게 1800자로 절단
+          jq -n --arg ch "$CHANNEL_ID" --arg head "$THREAD_HEAD" --arg body "$THREAD_BODY" \
+            '{channel:$ch, text: ($head + "\n\n" + (if ($body|length) > 1800 then ($body[0:1800] + "…") else $body end))}' \
+            > slack_thread_body.json
+
+      - name: Post Slack (main + thread reply)
         if: always()
-        uses: slackapi/slack-github-action@v2
-        with:
-          webhook: ${{ secrets.SLACK_WEBHOOK }}
-          webhook-type: incoming-webhook
-          payload-file-path: slack_payload.json
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        run: |
+          if [ -z "$SLACK_BOT_TOKEN" ]; then
+            echo "SLACK_BOT_TOKEN 미설정 — Slack 알림을 건너뜁니다."
+            exit 0
+          fi
+          api() {
+            curl -sS -X POST https://slack.com/api/chat.postMessage \
+              -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+              -H "Content-Type: application/json; charset=utf-8" \
+              --data @"$1"
+          }
+          # 1) 메인 상태 메시지 → ts 획득
+          RESP=$(api slack_main.json)
+          if [ "$(printf '%s' "$RESP" | jq -r '.ok')" != "true" ]; then
+            echo "Slack 메인 메시지 실패: $RESP"; exit 1
+          fi
+          TS=$(printf '%s' "$RESP" | jq -r '.ts')
+          echo "메인 메시지 ts=$TS"
+          # 2) 그 ts 스레드에 커밋/PR 내용을 답글로
+          jq --arg ts "$TS" '. + {thread_ts:$ts}' slack_thread_body.json > slack_thread.json
+          RESP2=$(api slack_thread.json)
+          if [ "$(printf '%s' "$RESP2" | jq -r '.ok')" != "true" ]; then
+            echo "Slack 스레드 답글 실패: $RESP2"; exit 1
+          fi
+          echo "Slack 알림 완료 (스레드 댓글 포함)"
 
   deploy_prd:
     if: startsWith(github.ref, 'refs/tags/v')
