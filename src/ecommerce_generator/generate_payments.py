@@ -72,19 +72,35 @@ def generate(
         np.datetime64(end_date).astype("datetime64[s]") + np.timedelta64(86399, "s")
     ).astype("datetime64[us]")
 
-    # paid_at: 주문 직후 (>= order.created_at), end_date 이내로 클립
-    paid_offset = rng.integers(_PAID_MIN_S, _PAID_MAX_S, size=n)
+    # paid_at: 리드타임을 남은 시간 이내로 제한 (클리핑 방지)
+    remaining_secs = (
+        (end_ts - order_created).astype("timedelta64[s]").astype(np.int64)
+    )
+    paid_max_secs = np.clip(remaining_secs, _PAID_MIN_S, _PAID_MAX_S)
+    paid_offset = np.array([
+        rng.integers(_PAID_MIN_S, max_s + 1) if max_s >= _PAID_MIN_S else max_s
+        for max_s in paid_max_secs
+    ])
     paid_at = order_created + paid_offset.astype("timedelta64[s]")
-    paid_at = np.minimum(paid_at, end_ts)
 
     # refunded_at: 환불 건에만 (그 외 NaT → polars null)
     refunded_at = np.full(n, np.datetime64("NaT"), dtype="datetime64[us]")
     is_refunded = statuses == "refunded"
     n_ref = int(is_refunded.sum())
     if n_ref:
-        ref_secs = rng.integers(_REFUND_MIN_D, _REFUND_MAX_D, size=n_ref) * 86400
-        ref_times = paid_at[is_refunded] + ref_secs.astype("timedelta64[s]")
-        refunded_at[is_refunded] = np.minimum(ref_times, end_ts)
+        paid_ref = paid_at[is_refunded]
+        remaining_after_paid = (
+            (end_ts - paid_ref).astype("timedelta64[s]").astype(np.int64)
+        )
+        refund_max_secs = np.clip(
+            remaining_after_paid, _REFUND_MIN_D * 86400, _REFUND_MAX_D * 86400
+        )
+        ref_secs = np.array([
+            rng.integers(_REFUND_MIN_D * 86400, max_s + 1)
+            if max_s >= _REFUND_MIN_D * 86400 else max_s
+            for max_s in refund_max_secs
+        ])
+        refunded_at[is_refunded] = paid_ref + ref_secs.astype("timedelta64[s]")
 
     df = pl.DataFrame({
         "payment_id": np.arange(1, n + 1, dtype=np.int64),
