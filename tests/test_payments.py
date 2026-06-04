@@ -66,12 +66,30 @@ def test_status_consistent_with_order(payments, order_items_and_orders):
     assert (joined["status"] == expected).all()
 
 
-def test_amount_matches_order(payments, order_items_and_orders):
+def test_amount_matches_order_local(payments, order_items_and_orders):
+    """결제 금액은 고객이 청구받은 현지통화 금액(order.amount_local)과 일치해야 한다."""
     _, orders = order_items_and_orders
     joined = payments.select(["order_id", "amount"]).join(
+        orders.select(["order_id", "amount_local"]), on="order_id"
+    )
+    assert (joined["amount"] - joined["amount_local"]).abs().max() < 0.01
+
+
+def test_amount_currency_consistent(payments, order_items_and_orders):
+    """amount(현지통화)와 currency가 같은 통화 기준이어야 한다 (USD 라벨에 USD 금액 등).
+
+    회귀 방지: 과거 amount가 USD(total_amount)인데 currency는 현지통화라 불일치했음.
+    USD 주문은 amount_local == total_amount 이므로, 비-USD 주문에서 amount가
+    total_amount(USD)와 다름을 확인해 현지통화로 환산됐는지 검증한다.
+    """
+    _, orders = order_items_and_orders
+    joined = payments.select(["order_id", "amount", "currency"]).join(
         orders.select(["order_id", "total_amount"]), on="order_id"
     )
-    assert (joined["amount"] - joined["total_amount"]).abs().max() < 0.01
+    non_usd = joined.filter(pl.col("currency") != "USD")
+    if len(non_usd) > 0:
+        # 현지통화로 환산됐다면 USD 원금과 (대부분) 다른 값이어야 한다
+        assert (non_usd["amount"] != non_usd["total_amount"]).any()
 
 
 def test_paid_after_order_created(payments, order_items_and_orders):

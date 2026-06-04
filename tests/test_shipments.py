@@ -4,7 +4,8 @@ from datetime import date
 import polars as pl
 
 from ecommerce_generator import generate_orders, generate_shipments, generate_users
-from tests.conftest import END_DATE
+
+from .conftest import END_DATE
 
 EXPECTED_COLUMNS = {
     "shipment_id", "order_id", "carrier", "status",
