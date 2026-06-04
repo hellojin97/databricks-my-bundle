@@ -217,7 +217,11 @@ def _assign_status(
     오래된 주문 → delivered/cancelled/refunded
     최근 주문 → pending/processing/shipped 가능
     """
-    end_ts = np.datetime64(end_date).astype("datetime64[s]")
+    # end_date 23:59:59 기준 (타임스탬프 생성 상한과 동일). 00:00:00로 두면 당일 주문이
+    # 음수 age가 되어 very_recent로 빠지면서 전부 pending으로 강등되므로 +86399.
+    end_ts = (
+        np.datetime64(end_date).astype("datetime64[s]") + np.timedelta64(86399, "s")
+    )
     age_seconds = (end_ts - order_timestamps).astype("int64")
     age_hours = age_seconds / 3600.0
 

@@ -81,12 +81,10 @@ def generate(
     remaining_secs = (
         (end_ts - order_created).astype("timedelta64[s]").astype(np.int64)
     )
-    proc_max_secs = np.clip(remaining_secs, _PROC_MIN_H * 3600, _PROC_MAX_H * 3600)
-    proc_secs = np.array([
-        rng.integers(_PROC_MIN_H * 3600, max_s + 1) if max_s >= _PROC_MIN_H * 3600 else max_s
-        for max_s in proc_max_secs
-    ])
-    shipped_at = order_created + proc_secs.astype("timedelta64[s]")
+    # rng.integers는 배열 상한을 받으므로 행별 상한으로 한 번에 벡터화 (Python 루프 제거)
+    proc_high = np.clip(remaining_secs, _PROC_MIN_H * 3600, _PROC_MAX_H * 3600) + 1
+    proc_secs = rng.integers(_PROC_MIN_H * 3600, proc_high)
+    shipped_at = np.minimum(order_created + proc_secs.astype("timedelta64[s]"), end_ts)
 
     # delivered_at: 도착(delivered) 건에만 (in_transit은 NaT → null)
     delivered_at = np.full(n, np.datetime64("NaT"), dtype="datetime64[us]")
@@ -97,15 +95,13 @@ def generate(
         remaining_after_ship = (
             (end_ts - shipped_del).astype("timedelta64[s]").astype(np.int64)
         )
-        transit_max_secs = np.clip(
+        transit_high = np.clip(
             remaining_after_ship, _TRANSIT_MIN_H * 3600, _TRANSIT_MAX_H * 3600
+        ) + 1
+        transit_secs = rng.integers(_TRANSIT_MIN_H * 3600, transit_high)
+        delivered_at[is_delivered] = np.minimum(
+            shipped_del + transit_secs.astype("timedelta64[s]"), end_ts
         )
-        transit_secs = np.array([
-            rng.integers(_TRANSIT_MIN_H * 3600, max_s + 1)
-            if max_s >= _TRANSIT_MIN_H * 3600 else max_s
-            for max_s in transit_max_secs
-        ])
-        delivered_at[is_delivered] = shipped_del + transit_secs.astype("timedelta64[s]")
 
     df = pl.DataFrame({
         "shipment_id": np.arange(1, n + 1, dtype=np.int64),
