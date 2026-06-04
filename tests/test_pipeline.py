@@ -1,8 +1,8 @@
 """파이프라인 통합 검증.
 
 generator 단위 테스트가 못 잡는 영역만 본다:
-- `main()` end-to-end 실행(인자 전달·6단계 연결)이 오류 없이 끝나는가
-- 6개 산출물이 올바른 경로에 영속되는가 (차원=파일, 팩트=dt 파티션 디렉터리)
+- `main()` end-to-end 실행(인자 전달·8단계 연결)이 오류 없이 끝나는가
+- 8개 산출물이 올바른 경로에 영속되는가 (차원=파일, 팩트=dt 파티션 디렉터리)
 - 디스크에서 다시 읽었을 때 스키마·파티션(dt)·교차 FK가 정합한가
 - CLI 오버라이드가 실제로 반영되는가
 재현성·분포 등 디테일은 각 generator 단위 테스트가 담당한다(중복 회피).
@@ -44,6 +44,14 @@ FACT_DIRS = {
         "event_id", "user_id", "session_id", "event_type", "product_id",
         "search_query", "order_id", "event_ts", "dt",
     },
+    "payments": {
+        "payment_id", "order_id", "payment_method", "amount",
+        "currency", "status", "paid_at", "refunded_at", "dt",
+    },
+    "shipments": {
+        "shipment_id", "order_id", "carrier", "status",
+        "shipped_at", "delivered_at", "dt",
+    },
 }
 
 
@@ -63,7 +71,7 @@ def out_dir(tmp_path_factory):
 
 @pytest.fixture(scope="module")
 def frames(out_dir):
-    """디스크에서 다시 읽은 6개 테이블 (팩트는 hive 파티션 복원)."""
+    """디스크에서 다시 읽은 8개 테이블 (팩트는 hive 파티션 복원)."""
     return {
         "categories": pl.read_parquet(out_dir / "categories.parquet"),
         "users": pl.read_parquet(out_dir / "users.parquet"),
@@ -71,6 +79,8 @@ def frames(out_dir):
         "orders": pl.read_parquet(str(out_dir / "orders"), hive_partitioning=True),
         "order_items": pl.read_parquet(str(out_dir / "order_items"), hive_partitioning=True),
         "events": pl.read_parquet(str(out_dir / "events"), hive_partitioning=True),
+        "payments": pl.read_parquet(str(out_dir / "payments"), hive_partitioning=True),
+        "shipments": pl.read_parquet(str(out_dir / "shipments"), hive_partitioning=True),
     }
 
 
@@ -154,3 +164,7 @@ def test_cross_table_fk_at_rest(frames):
     seen_orders = ev.filter(pl.col("order_id").is_not_null())["order_id"]
     assert set(seen_products.unique().to_list()) <= product_ids
     assert set(seen_orders.unique().to_list()) <= order_ids
+
+    # payments/shipments → orders
+    assert set(frames["payments"]["order_id"].unique().to_list()) <= order_ids
+    assert set(frames["shipments"]["order_id"].unique().to_list()) <= order_ids

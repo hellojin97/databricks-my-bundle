@@ -12,7 +12,9 @@ from ecommerce_generator import (
     generate_events,
     generate_order_items,
     generate_orders,
+    generate_payments,
     generate_products,
+    generate_shipments,
     generate_users,
 )
 
@@ -87,3 +89,17 @@ def events(users, products, order_items_and_orders):
         max_events_per_session=MAX_EVENTS_PER_SESSION,
         null_rate_search=NULL_RATE_SEARCH,
     )
+
+
+@pytest.fixture(scope="session")
+def payments(order_items_and_orders):
+    """결제 payments. 금액이 확정된 orders(업데이트본)를 전달한다."""
+    _, updated_orders = order_items_and_orders
+    return generate_payments.generate(orders_df=updated_orders, end_date=END_DATE, seed=SEED)
+
+
+@pytest.fixture(scope="session")
+def shipments(order_items_and_orders):
+    """배송 shipments. 발송된 주문에만 행이 생긴다."""
+    _, updated_orders = order_items_and_orders
+    return generate_shipments.generate(orders_df=updated_orders, end_date=END_DATE, seed=SEED)
