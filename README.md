@@ -46,6 +46,7 @@
 |--------|------|-----------|
 | **주문** | 누가 언제 주문했는지 | 약 300만 건 |
 | **주문 상세** | 주문 안에 어떤 상품이 몇 개 담겼는지 | 주문보다 많음 |
+| **행동 로그** | 누가 어떤 상품을 보고, 검색하고, 장바구니에 담았는지 (클릭스트림) | 약 1,600만 건 |
 
 > 만들어진 데이터는 `Parquet`이라는 형식의 파일로 저장됩니다. 엑셀 파일과 비슷하지만, 대용량 데이터를 빠르게 다루기 위한 전문 형식입니다.
 
@@ -135,20 +136,86 @@ flowchart TD
 
 ---
 
-## 직접 실행해보려면? (개발자용)
+## 사용 방법 (개발자용)
 
-> 이 부분은 컴퓨터에 개발 환경이 설치된 분들을 위한 안내입니다.
+> 컴퓨터에 개발 환경(Python 3.12, uv)이 준비된 분들을 위한 안내입니다.
+
+### 1. 준비 — 의존성 설치
+
+이 프로젝트는 [uv](https://github.com/astral-sh/uv)로 패키지를 관리합니다.
 
 ```bash
-# 1. 데이터 생성을 로컬에서 직접 실행 (기간과 저장 위치를 지정)
-generate-data \
+# 런타임 + 개발용(테스트·린트) 의존성을 한 번에 설치
+uv sync --dev
+```
+
+### 2. 데이터 생성 (로컬 실행)
+
+`generate-data` 명령으로 데이터를 만듭니다. 기간과 저장 위치는 반드시 지정해야 합니다.
+
+```bash
+uv run generate-data \
   --start-date 2025-05-11 \
   --end-date 2026-05-11 \
   --output-volume ./output/raw
-
-# 2. Databricks에 배포 (개발 환경)
-databricks bundle deploy -t dev
 ```
 
-만들 데이터의 양(회원 수, 상품 수 등)이나 "지저분한 데이터" 비율은
-`src/ecommerce_generator/config.yml` 파일에서 조정할 수 있습니다.
+실행하면 저장 위치 아래에 이렇게 쌓입니다.
+
+```
+output/raw/
+├── categories.parquet      # 카테고리
+├── users.parquet           # 회원
+├── products.parquet        # 상품
+├── orders/                 # 주문 (날짜별 dt 폴더로 나뉨)
+│   └── dt=2025-11-28/ ...
+├── order_items/            # 주문 상세 (날짜별)
+└── events/                 # 행동 로그 (날짜별)
+```
+
+### 옵션 한눈에 보기
+
+| 옵션 | 필수 | 설명 |
+|------|------|------|
+| `--start-date` | 필수 | 데이터 기간 시작일 (YYYY-MM-DD) |
+| `--end-date` | 필수 | 데이터 기간 종료일 (YYYY-MM-DD) |
+| `--output-volume` | 필수 | 결과를 저장할 폴더 경로 |
+| `--seed` | 선택 | 난수 시드. 같은 값이면 항상 같은 데이터가 나옴 |
+| `--users` | 선택 | 회원 수 |
+| `--products` | 선택 | 상품 수 |
+| `--null-rate-gender` | 선택 | 회원 성별을 비울 비율 |
+| `--null-rate-brand` | 선택 | 상품 브랜드를 비울 비율 |
+| `--discontinued-rate` | 선택 | 상품 단종 비율 |
+| `--browse-sessions-per-user` | 선택 | 회원당 평균 둘러보기 세션 수 |
+| `--max-events-per-session` | 선택 | 세션당 행동 로그 최대 개수 |
+| `--null-rate-search` | 선택 | 검색어를 비울 비율 |
+
+> 선택 옵션을 지정하지 않으면 `src/ecommerce_generator/config.yml`의 기본값이 쓰입니다.
+
+빠르게 시험해 보려면 규모를 작게 잡으면 됩니다.
+
+```bash
+uv run generate-data \
+  --start-date 2025-01-01 --end-date 2025-12-31 \
+  --output-volume ./output/raw \
+  --users 2000 --products 300
+```
+
+### 3. 기본값 바꾸기
+
+만들 데이터의 양이나 "지저분한 데이터" 비율의 기본값은
+`src/ecommerce_generator/config.yml`에서 조정할 수 있습니다.
+매 실행마다 다르게 주고 싶을 때는 위의 명령 옵션을 쓰면 됩니다.
+
+### 4. 테스트와 코드 점검
+
+```bash
+uv run pytest        # 전체 테스트
+uv run ruff check .  # 코드 스타일 점검
+```
+
+### 5. Databricks에 배포 (개발 환경)
+
+```bash
+databricks bundle deploy -t dev
+```
