@@ -27,7 +27,9 @@ from . import (
     generate_events,
     generate_order_items,
     generate_orders,
+    generate_payments,
     generate_products,
+    generate_shipments,
     generate_users,
 )
 from .base import load_config, write_parquet
@@ -170,11 +172,11 @@ def main(argv: list[str] | None = None) -> None:
 
     print("\n" + "=" * 64)
     print(f"Phase 1 done in {time.time() - total_t0:.2f}s")
-    print("Next: orders + order_items + events; later: payments + shipments")
+    print("Next: orders + order_items + events + payments + shipments")
     print("=" * 64)
 
     # 4. Orders (users에 의존, 가장 큰 팩트 테이블)
-    print("\n[4/6] Orders")
+    print("\n[4/8] Orders")
     t0 = time.time()
     orders = generate_orders.generate(
         users_df=users,
@@ -184,7 +186,7 @@ def main(argv: list[str] | None = None) -> None:
     print(f"    elapsed: {time.time() - t0:.2f}s")
 
     # 5. Order Items (orders, products에 의존, orders도 업데이트)
-    print("\n[5/6] Order Items + Update Orders")
+    print("\n[5/8] Order Items + Update Orders")
     t0 = time.time()
     order_items, orders = generate_order_items.generate(
         orders_df=orders,
@@ -194,7 +196,7 @@ def main(argv: list[str] | None = None) -> None:
     print(f"    elapsed: {time.time() - t0:.2f}s")
 
     # 6. Events (users/products/orders/order_items에 의존, 클릭스트림)
-    print("\n[6/6] Events")
+    print("\n[6/8] Events")
     t0 = time.time()
     events = generate_events.generate(
         users_df=users,
@@ -209,11 +211,25 @@ def main(argv: list[str] | None = None) -> None:
     )
     print(f"    elapsed: {time.time() - t0:.2f}s")
 
-    # 이제 세 팩트 테이블 저장 (모두 dt 파티션)
+    # 7. Payments (orders에 의존, 주문당 1결제)
+    print("\n[7/8] Payments")
+    t0 = time.time()
+    payments = generate_payments.generate(orders_df=orders, end_date=end_date, seed=seed)
+    print(f"    elapsed: {time.time() - t0:.2f}s")
+
+    # 8. Shipments (orders에 의존, 발송된 주문만)
+    print("\n[8/8] Shipments")
+    t0 = time.time()
+    shipments = generate_shipments.generate(orders_df=orders, end_date=end_date, seed=seed)
+    print(f"    elapsed: {time.time() - t0:.2f}s")
+
+    # 이제 다섯 팩트 테이블 저장 (모두 dt 파티션)
     print("\nWriting partitioned facts...")
     write_parquet(orders, output_dir / "orders", partition_by=["dt"])
     write_parquet(order_items, output_dir / "order_items", partition_by=["dt"])
     write_parquet(events, output_dir / "events", partition_by=["dt"])
+    write_parquet(payments, output_dir / "payments", partition_by=["dt"])
+    write_parquet(shipments, output_dir / "shipments", partition_by=["dt"])
 
 
 if __name__ == "__main__":
