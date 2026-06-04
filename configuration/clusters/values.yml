@@ -28,7 +28,7 @@ resources:
           level: CAN_MANAGE
 
     user_cluster_apcmp:
-      cluster_name: main_cluster_apcmp
+      cluster_name: user_cluster_apcmp
       kind: CLASSIC_PREVIEW
       is_single_node: true
       num_workers: 0

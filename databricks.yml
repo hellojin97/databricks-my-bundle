@@ -13,7 +13,6 @@ artifacts:
     type: whl
     build: uv build --wheel
     path: .
-    dynamic_version: true
 
 permissions:
   - service_principal_name: ${var.service_principal_name}

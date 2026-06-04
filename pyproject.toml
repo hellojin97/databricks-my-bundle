@@ -1,6 +1,6 @@
 [project]
 name = "ecommerce-generator"
-version = "0.1.0"
+version = "0.1.5"
 description = "E-commerce fake data generator packaged as a wheel for Databricks bundle deployment"
 readme = "README.md"
 authors = [
